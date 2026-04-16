@@ -18,3 +18,12 @@ body {
   color: #f5f0eb;
   font-family: var(--font-geist-sans, Arial, sans-serif);
 }
+
+.ravelry-link {
+  background-color: #38342f;
+  border: 1px solid #4a4440;
+}
+.ravelry-link:hover {
+  background-color: #C06B45;
+  border-color: #C06B45;
+}

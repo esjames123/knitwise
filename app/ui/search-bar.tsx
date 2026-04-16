@@ -1,12 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function SearchBar() {
   const [query, setQuery] = useState('')
+  const router = useRouter()
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    if (q) router.push(`/search?q=${encodeURIComponent(q)}`)
+  }
 
   return (
-    <form onSubmit={(e) => e.preventDefault()}
+    <form onSubmit={handleSubmit}
           className="flex w-full max-w-2xl items-center gap-2">
 
       <div className="relative flex-1">
