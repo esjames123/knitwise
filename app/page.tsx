@@ -109,7 +109,7 @@ export default function Home() {
       <Nav />
 
       {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-32 text-center"
+      <section className="relative overflow-hidden px-4 py-16 text-center sm:px-6 sm:py-28"
                style={{ backgroundColor: '#242220' }}>
         {/* Warm glow behind headline */}
         <div className="pointer-events-none absolute inset-0"
@@ -126,7 +126,7 @@ export default function Home() {
           </div>
 
           {/* Headline */}
-          <h1 className="mb-5 text-5xl font-bold tracking-tight sm:text-6xl leading-tight"
+          <h1 className="mb-5 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-tight"
               style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
             Find your next<br />
             <em style={{ color: '#C06B45', fontStyle: 'italic' }}>beautiful make</em>
@@ -149,7 +149,7 @@ export default function Home() {
       </section>
 
       {/* ── Trending Patterns ─────────────────────────────────── */}
-      <section className="px-6 py-20" style={{ backgroundColor: '#242220' }}>
+      <section className="px-4 py-16 sm:px-6 sm:py-20" style={{ backgroundColor: '#242220' }}>
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 flex items-end justify-between">
             <div>
@@ -206,14 +206,14 @@ export default function Home() {
       </section>
 
       {/* ── Pricing ───────────────────────────────────────────── */}
-      <section className="px-6 py-20" style={{ borderTop: '1px solid #3a3530', backgroundColor: '#1e1c1a' }}>
+      <section className="px-4 py-16 sm:px-6 sm:py-20" style={{ borderTop: '1px solid #3a3530', backgroundColor: '#1e1c1a' }}>
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>Simple pricing</h2>
             <p className="mt-2" style={{ color: '#b0a49a' }}>Start free, upgrade when you're ready</p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {plans.map((plan) => (
               <div key={plan.name}
                    className="relative rounded-2xl p-7"

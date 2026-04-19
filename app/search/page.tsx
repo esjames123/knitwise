@@ -3,6 +3,8 @@ import Nav from '@/app/ui/nav'
 import SearchBar from '@/app/ui/search-bar'
 import FilterSidebar from '@/app/ui/filter-sidebar'
 import { buildActiveChips } from '@/app/lib/filter-chips'
+import SaveButton from '@/app/ui/save-button'
+import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,7 +244,7 @@ export default async function SearchPage({
     <div style={{ backgroundColor: '#242220', color: '#f5f0eb', minHeight: '100vh' }}>
       <Nav />
 
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
         {/* Search bar — full width */}
         <div className="mb-8 flex justify-center">
           <SearchBar />
@@ -343,6 +345,13 @@ export default async function SearchPage({
                                   }}
                                 />
                               )}
+                              <SaveButton
+                                patternId={pattern.id}
+                                patternName={pattern.name}
+                                designerName={pattern.designer?.name ?? null}
+                                permalink={pattern.permalink}
+                                photoUrl={pattern.first_photo?.medium_url ?? null}
+                              />
                             </div>
 
                             <div className="flex flex-1 flex-col p-5 gap-3">
@@ -350,11 +359,11 @@ export default async function SearchPage({
                                 <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
                                   {pattern.name}
                                 </h2>
-                                {pattern.designer && (
-                                  <p className="mt-0.5 text-sm" style={{ color: '#9a8e87' }}>
-                                    by {pattern.designer.name}
-                                  </p>
-                                )}
+                                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
+                                  {pattern.designer && <span>by {pattern.designer.name}</span>}
+                                  {pattern.designer && <span aria-hidden="true">·</span>}
+                                  <RavelryCardCredit />
+                                </p>
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -395,6 +404,7 @@ export default async function SearchPage({
                       })}
                     </div>
                   )}
+                  <RavelryFooter />
                 </>
               )}
             </div>

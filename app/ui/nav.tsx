@@ -2,70 +2,173 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
 export default function Nav() {
   const [user, setUser] = useState<User | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Close mobile menu on route change
+  useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  // Lock body scroll when menu open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuOpen])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
   async function handleLogOut() {
     await supabase.auth.signOut()
+    setMenuOpen(false)
   }
 
+  const navLinks = [
+    { href: '/search',  label: 'Explore'    },
+    { href: '/library', label: 'My Library' },
+  ]
+
   return (
-    <nav style={{ backgroundColor: '#1e1c1a', borderBottom: '1px solid #3a3530' }}
-         className="sticky top-0 z-50">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/"
-              className="text-2xl tracking-tight"
-              style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
-          Knit<em style={{ color: '#C06B45', fontStyle: 'italic' }}>wise</em>
-        </Link>
+    <>
+      <nav style={{ backgroundColor: '#1e1c1a', borderBottom: '1px solid #3a3530' }}
+           className="sticky top-0 z-50">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
 
-        <div className="hidden items-center gap-8 text-sm sm:flex" style={{ color: '#c4b8ae' }}>
-          <Link href="#" className="hover:text-white transition-colors" style={{ color: '#c4b8ae' }}>Explore</Link>
-          <Link href="#" className="hover:text-white transition-colors" style={{ color: '#c4b8ae' }}>Designers</Link>
-          <Link href="#" className="hover:text-white transition-colors" style={{ color: '#c4b8ae' }}>Your Stash</Link>
-        </div>
+          {/* Logo */}
+          <Link href="/"
+            className="text-2xl tracking-tight"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
+            Knit<em style={{ color: '#C06B45', fontStyle: 'italic' }}>wise</em>
+          </Link>
 
-        <div className="flex items-center gap-3">
-          {user ? (
-            <>
-              <span className="hidden text-sm sm:block" style={{ color: '#c4b8ae' }}>
-                {user.email}
-              </span>
-              <button
-                onClick={handleLogOut}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]"
-              >
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="hidden text-sm sm:block transition-colors" style={{ color: '#c4b8ae' }}>
-                Log in
+          {/* Desktop centre links */}
+          <div className="hidden items-center gap-8 text-sm sm:flex" style={{ color: '#c4b8ae' }}>
+            {navLinks.map(l => (
+              <Link key={l.href} href={l.href}
+                className="transition-colors hover:text-white"
+                style={{ color: pathname === l.href ? '#f5f0eb' : '#c4b8ae' }}>
+                {l.label}
               </Link>
-              <Link href="/signup"
-                    className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]">
-                Sign up free
-              </Link>
-            </>
-          )}
+            ))}
+            <Link href="#" className="transition-colors hover:text-white" style={{ color: '#c4b8ae' }}>
+              Designers
+            </Link>
+          </div>
+
+          {/* Desktop auth */}
+          <div className="hidden items-center gap-3 sm:flex">
+            {user ? (
+              <>
+                <span className="max-w-[160px] truncate text-sm" style={{ color: '#c4b8ae' }}>
+                  {user.email}
+                </span>
+                <button onClick={handleLogOut}
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm transition-colors hover:text-white" style={{ color: '#c4b8ae' }}>
+                  Log in
+                </Link>
+                <Link href="/signup"
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                  Sign up free
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Mobile right: hamburger */}
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            className="flex h-10 w-10 items-center justify-center rounded-lg sm:hidden"
+            style={{ backgroundColor: menuOpen ? '#3a3530' : 'transparent' }}
+          >
+            {menuOpen ? (
+              /* X icon */
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#f5f0eb" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            ) : (
+              /* Hamburger icon */
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#c4b8ae" strokeWidth="2" strokeLinecap="round">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile menu overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col sm:hidden"
+          style={{ backgroundColor: '#1a1917', top: '65px' }}
+        >
+          <div className="flex flex-col px-6 py-6 gap-1">
+            {/* Nav links */}
+            {navLinks.map(l => (
+              <Link key={l.href} href={l.href}
+                className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors"
+                style={{
+                  color: pathname === l.href ? '#f5f0eb' : '#c4b8ae',
+                  backgroundColor: pathname === l.href ? '#2e2b28' : 'transparent',
+                }}>
+                {l.label}
+              </Link>
+            ))}
+            <Link href="#"
+              className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors"
+              style={{ color: '#c4b8ae' }}>
+              Designers
+            </Link>
+
+            {/* Divider */}
+            <div className="my-3" style={{ borderTop: '1px solid #3a3530' }} />
+
+            {/* Auth */}
+            {user ? (
+              <>
+                <p className="px-4 pb-2 text-sm truncate" style={{ color: '#7a6e67' }}>{user.email}</p>
+                <button onClick={handleLogOut}
+                  className="rounded-xl px-4 py-3.5 text-left text-base font-semibold text-white transition-colors"
+                  style={{ backgroundColor: '#C06B45' }}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link href="/login"
+                  className="rounded-xl px-4 py-3.5 text-center text-base font-medium transition-colors"
+                  style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530', color: '#f5f0eb' }}>
+                  Log in
+                </Link>
+                <Link href="/signup"
+                  className="rounded-xl px-4 py-3.5 text-center text-base font-semibold text-white"
+                  style={{ backgroundColor: '#C06B45' }}>
+                  Sign up free
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   )
 }

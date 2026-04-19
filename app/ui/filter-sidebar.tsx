@@ -1,51 +1,53 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+
+// ─── Filter data ──────────────────────────────────────────────────────────────
 
 const CRAFTS = [
   { value: 'knitting', label: 'Knitting' },
-  { value: 'crochet', label: 'Crochet' },
-  { value: 'weaving', label: 'Weaving' },
+  { value: 'crochet',  label: 'Crochet'  },
+  { value: 'weaving',  label: 'Weaving'  },
   { value: 'spinning', label: 'Spinning' },
 ]
 
 const WEIGHTS = [
-  { value: 'lace', label: 'Lace' },
-  { value: 'fingering', label: 'Fingering' },
-  { value: 'sport', label: 'Sport' },
-  { value: 'dk', label: 'DK' },
-  { value: 'worsted', label: 'Worsted' },
-  { value: 'bulky', label: 'Bulky' },
+  { value: 'lace',        label: 'Lace'        },
+  { value: 'fingering',   label: 'Fingering'   },
+  { value: 'sport',       label: 'Sport'       },
+  { value: 'dk',          label: 'DK'          },
+  { value: 'worsted',     label: 'Worsted'     },
+  { value: 'bulky',       label: 'Bulky'       },
   { value: 'super_bulky', label: 'Super Bulky' },
 ]
 
 const DIFFICULTIES = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'easy', label: 'Easy' },
+  { value: 'beginner',     label: 'Beginner'     },
+  { value: 'easy',         label: 'Easy'         },
   { value: 'intermediate', label: 'Intermediate' },
-  { value: 'experienced', label: 'Experienced' },
-  { value: 'expert', label: 'Expert' },
+  { value: 'experienced',  label: 'Experienced'  },
+  { value: 'expert',       label: 'Expert'       },
 ]
 
 const PATTERN_TYPES = [
-  { value: 'sweater', label: 'Sweater' },
-  { value: 'cardigan', label: 'Cardigan' },
-  { value: 'hat', label: 'Hat' },
-  { value: 'scarf', label: 'Scarf' },
-  { value: 'shawl', label: 'Shawl / Wrap' },
-  { value: 'socks', label: 'Socks' },
-  { value: 'mittens', label: 'Mittens' },
-  { value: 'blanket', label: 'Blanket' },
-  { value: 'bag', label: 'Bag' },
-  { value: 'toy', label: 'Toy' },
+  { value: 'sweater',  label: 'Sweater'     },
+  { value: 'cardigan', label: 'Cardigan'    },
+  { value: 'hat',      label: 'Hat'         },
+  { value: 'scarf',    label: 'Scarf'       },
+  { value: 'shawl',    label: 'Shawl / Wrap'},
+  { value: 'socks',    label: 'Socks'       },
+  { value: 'mittens',  label: 'Mittens'     },
+  { value: 'blanket',  label: 'Blanket'     },
+  { value: 'bag',      label: 'Bag'         },
+  { value: 'toy',      label: 'Toy'         },
 ]
 
 const SIZES = [
-  { value: 'baby', label: 'Baby' },
-  { value: 'child', label: 'Child' },
-  { value: 'adult', label: 'Adult' },
-  { value: 'plus', label: 'Plus Size' },
+  { value: 'baby',  label: 'Baby'      },
+  { value: 'child', label: 'Child'     },
+  { value: 'adult', label: 'Adult'     },
+  { value: 'plus',  label: 'Plus Size' },
 ]
 
 const YARDAGE_PRESETS = [
@@ -57,45 +59,33 @@ const YARDAGE_PRESETS = [
 ]
 
 const NEEDLE_PRESETS = [
-  { value: 'us0to2',      label: 'US 0–2 (lace/fingering)' },
-  { value: 'us3to5',      label: 'US 3–5 (sport/DK)'       },
-  { value: 'us6to8',      label: 'US 6–8 (worsted)'        },
-  { value: 'us9to11',     label: 'US 9–11 (bulky)'         },
-  { value: 'us13plus',    label: 'US 13+ (super bulky)'    },
-  { value: 'crochet2to4', label: '2mm–4mm crochet'         },
-  { value: 'crochet5to7', label: '5mm–7mm crochet'         },
-  { value: 'crochet8plus', label: '8mm+ crochet'           },
+  { value: 'us0to2',       label: 'US 0–2 (lace/fingering)' },
+  { value: 'us3to5',       label: 'US 3–5 (sport/DK)'       },
+  { value: 'us6to8',       label: 'US 6–8 (worsted)'        },
+  { value: 'us9to11',      label: 'US 9–11 (bulky)'         },
+  { value: 'us13plus',     label: 'US 13+ (super bulky)'    },
+  { value: 'crochet2to4',  label: '2mm–4mm crochet'         },
+  { value: 'crochet5to7',  label: '5mm–7mm crochet'         },
+  { value: 'crochet8plus', label: '8mm+ crochet'            },
 ]
+
+// ─── Small UI primitives ──────────────────────────────────────────────────────
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
-    <svg
-      width="14" height="14" viewBox="0 0 24 24"
+    <svg width="14" height="14" viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth="2.5"
       strokeLinecap="round" strokeLinejoin="round"
-      style={{
-        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-        transition: 'transform 200ms',
-        flexShrink: 0,
-      }}
+      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms', flexShrink: 0 }}
     >
       <path d="m6 9 6 6 6-6" />
     </svg>
   )
 }
 
-function SectionHeader({
-  label,
-  open,
-  onToggle,
-}: {
-  label: string
-  open: boolean
-  onToggle: () => void
-}) {
+function SectionHeader({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
-    <button
-      onClick={onToggle}
+    <button onClick={onToggle}
       className="flex w-full items-center justify-between py-2 text-sm font-semibold uppercase tracking-wider"
       style={{ color: '#c4b8ae', letterSpacing: '0.08em' }}
     >
@@ -105,19 +95,10 @@ function SectionHeader({
   )
 }
 
-function CheckItem({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: () => void
-}) {
+function CheckItem({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 py-1 text-sm" style={{ color: '#e8e0d8' }}>
-      <span
-        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
+    <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm" style={{ color: '#e8e0d8' }}>
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
         style={{
           backgroundColor: checked ? '#C06B45' : 'transparent',
           border: checked ? '1px solid #C06B45' : '1px solid #5a5048',
@@ -136,30 +117,13 @@ function CheckItem({
   )
 }
 
-function RadioItem({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: () => void
-}) {
+function RadioItem({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 py-1 text-sm" style={{ color: '#e8e0d8' }}>
-      <span
-        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full"
-        style={{
-          border: checked ? '1px solid #C06B45' : '1px solid #5a5048',
-          transition: 'all 150ms',
-        }}
+    <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm" style={{ color: '#e8e0d8' }}>
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full"
+        style={{ border: checked ? '1px solid #C06B45' : '1px solid #5a5048', transition: 'all 150ms' }}
       >
-        {checked && (
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: '#C06B45' }}
-          />
-        )}
+        {checked && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#C06B45' }} />}
       </span>
       <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
       {label}
@@ -169,42 +133,41 @@ function RadioItem({
 
 const divider = <div style={{ borderTop: '1px solid #3a3530', marginTop: '12px', marginBottom: '4px' }} />
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function FilterSidebar() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [open, setOpen] = useState<Record<string, boolean>>({
-    sort: true,
-    craft: true,
-    price: true,
-    type: true,
-    weight: true,
-    difficulty: true,
-    rating: true,
-    sizes: false,
-    yardage: false,
-    needle: false,
+    sort: true, craft: true, price: true, type: true, weight: true,
+    difficulty: true, rating: true, sizes: false, yardage: false, needle: false,
   })
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Lock body scroll when mobile overlay is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   function toggle(key: string) {
     setOpen(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  function getParam(key: string) {
-    return searchParams.get(key) ?? ''
-  }
-
+  function getParam(key: string) { return searchParams.get(key) ?? '' }
   function getMulti(key: string): string[] {
     return searchParams.get(key)?.split(',').filter(Boolean) ?? []
   }
 
   function setParam(key: string, value: string) {
     const p = new URLSearchParams(searchParams.toString())
-    if (!value || value === 'any') {
-      p.delete(key)
-    } else {
-      p.set(key, value)
-    }
+    if (!value || value === 'any') p.delete(key)
+    else p.set(key, value)
     router.push(`/search?${p.toString()}`)
   }
 
@@ -219,21 +182,24 @@ export default function FilterSidebar() {
     router.push(`/search?${p.toString()}`)
   }
 
-const crafts    = getMulti('craft')
-  const weights   = getMulti('weight')
-  const diffs     = getMulti('difficulty')
-  const types     = getMulti('type')
-  const sizes     = getMulti('sizes')
-  const price     = getParam('price')
-  const sort      = getParam('sort') || 'popularity'
-  const rating    = getParam('rating')
-  const yardages  = getMulti('yardage')
-  const needles   = getMulti('needle')
+  const crafts   = getMulti('craft')
+  const weights  = getMulti('weight')
+  const diffs    = getMulti('difficulty')
+  const types    = getMulti('type')
+  const sizes    = getMulti('sizes')
+  const yardages = getMulti('yardage')
+  const needles  = getMulti('needle')
+  const price    = getParam('price')
+  const sort     = getParam('sort') || 'popularity'
+  const rating   = getParam('rating')
 
-  const hasFilters =
-    crafts.length > 0 || weights.length > 0 || diffs.length > 0 ||
-    types.length > 0 || sizes.length > 0 || price || rating ||
-    (sort && sort !== 'popularity') || yardages.length > 0 || needles.length > 0
+  const activeFilterCount =
+    crafts.length + weights.length + diffs.length + types.length +
+    sizes.length + yardages.length + needles.length +
+    (price ? 1 : 0) + (rating ? 1 : 0) +
+    (sort && sort !== 'popularity' ? 1 : 0)
+
+  const hasFilters = activeFilterCount > 0
 
   function clearAll() {
     const q = searchParams.get('q')
@@ -242,208 +208,275 @@ const crafts    = getMulti('craft')
     router.push(`/search?${p.toString()}`)
   }
 
-  return (
-    <aside
-      className="rounded-2xl p-5 text-sm"
-      style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
-    >
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-base font-bold" style={{ color: '#f5f0eb' }}>Filters</span>
-        {hasFilters && (
-          <button
-            onClick={clearAll}
-            className="text-xs font-medium transition-colors"
-            style={{ color: '#C06B45' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#d4845f')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#C06B45')}
-          >
-            Clear all
-          </button>
+  // Shared filter section markup — rendered in both desktop sidebar and mobile overlay
+  function filterContent() {
+    return (
+      <>
+        {/* Sort By */}
+        <SectionHeader label="Sort by" open={open.sort} onToggle={() => toggle('sort')} />
+        {open.sort && (
+          <div className="mb-2 mt-1">
+            {[
+              { value: 'popularity', label: 'Most Popular'   },
+              { value: 'date',       label: 'Newest'          },
+              { value: 'rating',     label: 'Highest Rated'  },
+              { value: 'projects',   label: 'Most Projects'  },
+            ].map(opt => (
+              <RadioItem key={opt.value} label={opt.label}
+                checked={sort === opt.value}
+                onChange={() => setParam('sort', opt.value === 'popularity' ? '' : opt.value)}
+              />
+            ))}
+          </div>
         )}
+
+        {divider}
+
+        {/* Craft Type */}
+        <SectionHeader label="Craft Type" open={open.craft} onToggle={() => toggle('craft')} />
+        {open.craft && (
+          <div className="mb-2 mt-1">
+            {CRAFTS.map(c => (
+              <CheckItem key={c.value} label={c.label}
+                checked={crafts.includes(c.value)}
+                onChange={() => toggleMulti('craft', c.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Price */}
+        <SectionHeader label="Price" open={open.price} onToggle={() => toggle('price')} />
+        {open.price && (
+          <div className="mb-2 mt-1">
+            {[
+              { value: '',     label: 'Any'       },
+              { value: 'free', label: 'Free only' },
+              { value: 'paid', label: 'Paid only' },
+            ].map(opt => (
+              <RadioItem key={opt.value} label={opt.label}
+                checked={price === opt.value}
+                onChange={() => setParam('price', opt.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Pattern Type */}
+        <SectionHeader label="Pattern Type" open={open.type} onToggle={() => toggle('type')} />
+        {open.type && (
+          <div className="mb-2 mt-1">
+            {PATTERN_TYPES.map(t => (
+              <CheckItem key={t.value} label={t.label}
+                checked={types.includes(t.value)}
+                onChange={() => toggleMulti('type', t.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Yarn Weight */}
+        <SectionHeader label="Yarn Weight" open={open.weight} onToggle={() => toggle('weight')} />
+        {open.weight && (
+          <div className="mb-2 mt-1">
+            {WEIGHTS.map(w => (
+              <CheckItem key={w.value} label={w.label}
+                checked={weights.includes(w.value)}
+                onChange={() => toggleMulti('weight', w.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Difficulty */}
+        <SectionHeader label="Difficulty" open={open.difficulty} onToggle={() => toggle('difficulty')} />
+        {open.difficulty && (
+          <div className="mb-2 mt-1">
+            {DIFFICULTIES.map(d => (
+              <CheckItem key={d.value} label={d.label}
+                checked={diffs.includes(d.value)}
+                onChange={() => toggleMulti('difficulty', d.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Rating */}
+        <SectionHeader label="Rating" open={open.rating} onToggle={() => toggle('rating')} />
+        {open.rating && (
+          <div className="mb-2 mt-1">
+            {[
+              { value: '',  label: 'Any rating'  },
+              { value: '3', label: '3+ stars ★★★' },
+              { value: '4', label: '4+ stars ★★★★'},
+            ].map(opt => (
+              <RadioItem key={opt.value} label={opt.label}
+                checked={rating === opt.value}
+                onChange={() => setParam('rating', opt.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Available Sizes */}
+        <SectionHeader label="Available Sizes" open={open.sizes} onToggle={() => toggle('sizes')} />
+        {open.sizes && (
+          <div className="mb-2 mt-1">
+            {SIZES.map(s => (
+              <CheckItem key={s.value} label={s.label}
+                checked={sizes.includes(s.value)}
+                onChange={() => toggleMulti('sizes', s.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Yardage Range */}
+        <SectionHeader label="Yardage Range" open={open.yardage} onToggle={() => toggle('yardage')} />
+        {open.yardage && (
+          <div className="mb-2 mt-1">
+            {YARDAGE_PRESETS.map(p => (
+              <CheckItem key={p.value} label={p.label}
+                checked={yardages.includes(p.value)}
+                onChange={() => toggleMulti('yardage', p.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        {divider}
+
+        {/* Needle / Hook Size */}
+        <SectionHeader label="Needle / Hook Size" open={open.needle} onToggle={() => toggle('needle')} />
+        {open.needle && (
+          <div className="mb-2 mt-1">
+            {NEEDLE_PRESETS.map(p => (
+              <CheckItem key={p.value} label={p.label}
+                checked={needles.includes(p.value)}
+                onChange={() => toggleMulti('needle', p.value)}
+              />
+            ))}
+          </div>
+        )}
+      </>
+    )
+  }
+
+  return (
+    <>
+      {/* ── Mobile trigger bar (hidden on desktop) ── */}
+      <div className="mb-3 flex items-center gap-2 lg:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors"
+          style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530', color: '#f5f0eb' }}
+        >
+          {/* Sliders icon */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+            <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none" />
+            <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none" />
+          </svg>
+          Filters
+          {activeFilterCount > 0 && (
+            <span
+              className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white"
+              style={{ backgroundColor: '#C06B45' }}
+            >
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        {/* Sort quick-select on mobile */}
+        <select
+          value={sort}
+          onChange={e => setParam('sort', e.target.value === 'popularity' ? '' : e.target.value)}
+          className="rounded-xl py-3 pl-3 pr-8 text-sm font-medium outline-none"
+          style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530', color: '#c4b8ae' }}
+        >
+          <option value="popularity">Most Popular</option>
+          <option value="date">Newest</option>
+          <option value="rating">Highest Rated</option>
+          <option value="projects">Most Projects</option>
+        </select>
       </div>
 
-      {/* Sort By */}
-      <SectionHeader label="Sort by" open={open.sort} onToggle={() => toggle('sort')} />
-      {open.sort && (
-        <div className="mb-2 mt-1">
-          {[
-            { value: 'popularity', label: 'Most Popular' },
-            { value: 'date',       label: 'Newest' },
-            { value: 'rating',     label: 'Highest Rated' },
-            { value: 'projects',   label: 'Most Projects' },
-          ].map(opt => (
-            <RadioItem
-              key={opt.value}
-              label={opt.label}
-              checked={sort === opt.value}
-              onChange={() => setParam('sort', opt.value === 'popularity' ? '' : opt.value)}
-            />
-          ))}
+      {/* ── Desktop sidebar (hidden on mobile) ── */}
+      <aside className="hidden lg:block rounded-2xl p-5 text-sm"
+        style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-base font-bold" style={{ color: '#f5f0eb' }}>Filters</span>
+          {hasFilters && (
+            <button onClick={clearAll}
+              className="text-xs font-medium transition-colors"
+              style={{ color: '#C06B45' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#d4845f')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#C06B45')}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        {filterContent()}
+      </aside>
+
+      {/* ── Mobile full-screen overlay ── */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[200] flex flex-col lg:hidden"
+          style={{ backgroundColor: '#242220' }}
+        >
+          {/* Header */}
+          <div className="flex flex-shrink-0 items-center justify-between px-5 py-4"
+            style={{ backgroundColor: '#1e1c1a', borderBottom: '1px solid #3a3530' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-base font-bold" style={{ color: '#f5f0eb' }}>Filters</span>
+              {hasFilters && (
+                <button onClick={clearAll}
+                  className="text-xs font-medium"
+                  style={{ color: '#C06B45' }}
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: '#C06B45' }}
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Scrollable filter sections */}
+          <div className="flex-1 overflow-y-auto px-5 py-2 text-sm">
+            {filterContent()}
+            {/* Bottom padding so last section isn't hidden behind browser chrome */}
+            <div className="h-8" />
+          </div>
         </div>
       )}
-
-      {divider}
-
-      {/* Craft Type */}
-      <SectionHeader label="Craft Type" open={open.craft} onToggle={() => toggle('craft')} />
-      {open.craft && (
-        <div className="mb-2 mt-1">
-          {CRAFTS.map(c => (
-            <CheckItem
-              key={c.value}
-              label={c.label}
-              checked={crafts.includes(c.value)}
-              onChange={() => toggleMulti('craft', c.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Price */}
-      <SectionHeader label="Price" open={open.price} onToggle={() => toggle('price')} />
-      {open.price && (
-        <div className="mb-2 mt-1">
-          {[
-            { value: '',     label: 'Any' },
-            { value: 'free', label: 'Free only' },
-            { value: 'paid', label: 'Paid only' },
-          ].map(opt => (
-            <RadioItem
-              key={opt.value}
-              label={opt.label}
-              checked={price === opt.value}
-              onChange={() => setParam('price', opt.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Pattern Type */}
-      <SectionHeader label="Pattern Type" open={open.type} onToggle={() => toggle('type')} />
-      {open.type && (
-        <div className="mb-2 mt-1">
-          {PATTERN_TYPES.map(t => (
-            <CheckItem
-              key={t.value}
-              label={t.label}
-              checked={types.includes(t.value)}
-              onChange={() => toggleMulti('type', t.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Yarn Weight */}
-      <SectionHeader label="Yarn Weight" open={open.weight} onToggle={() => toggle('weight')} />
-      {open.weight && (
-        <div className="mb-2 mt-1">
-          {WEIGHTS.map(w => (
-            <CheckItem
-              key={w.value}
-              label={w.label}
-              checked={weights.includes(w.value)}
-              onChange={() => toggleMulti('weight', w.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Difficulty */}
-      <SectionHeader label="Difficulty" open={open.difficulty} onToggle={() => toggle('difficulty')} />
-      {open.difficulty && (
-        <div className="mb-2 mt-1">
-          {DIFFICULTIES.map(d => (
-            <CheckItem
-              key={d.value}
-              label={d.label}
-              checked={diffs.includes(d.value)}
-              onChange={() => toggleMulti('difficulty', d.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Rating */}
-      <SectionHeader label="Rating" open={open.rating} onToggle={() => toggle('rating')} />
-      {open.rating && (
-        <div className="mb-2 mt-1">
-          {[
-            { value: '',  label: 'Any rating' },
-            { value: '3', label: '3+ stars ★★★' },
-            { value: '4', label: '4+ stars ★★★★' },
-          ].map(opt => (
-            <RadioItem
-              key={opt.value}
-              label={opt.label}
-              checked={rating === opt.value}
-              onChange={() => setParam('rating', opt.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Available Sizes */}
-      <SectionHeader label="Available Sizes" open={open.sizes} onToggle={() => toggle('sizes')} />
-      {open.sizes && (
-        <div className="mb-2 mt-1">
-          {SIZES.map(s => (
-            <CheckItem
-              key={s.value}
-              label={s.label}
-              checked={sizes.includes(s.value)}
-              onChange={() => toggleMulti('sizes', s.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Yardage Range */}
-      <SectionHeader label="Yardage Range" open={open.yardage} onToggle={() => toggle('yardage')} />
-      {open.yardage && (
-        <div className="mb-2 mt-1">
-          {YARDAGE_PRESETS.map(p => (
-            <CheckItem
-              key={p.value}
-              label={p.label}
-              checked={yardages.includes(p.value)}
-              onChange={() => toggleMulti('yardage', p.value)}
-            />
-          ))}
-        </div>
-      )}
-
-      {divider}
-
-      {/* Needle / Hook Size */}
-      <SectionHeader label="Needle / Hook Size" open={open.needle} onToggle={() => toggle('needle')} />
-      {open.needle && (
-        <div className="mb-2 mt-1">
-          {NEEDLE_PRESETS.map(p => (
-            <CheckItem
-              key={p.value}
-              label={p.label}
-              checked={needles.includes(p.value)}
-              onChange={() => toggleMulti('needle', p.value)}
-            />
-          ))}
-        </div>
-      )}
-    </aside>
+    </>
   )
 }
-
