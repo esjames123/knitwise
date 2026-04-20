@@ -173,16 +173,28 @@ async function searchRavelry(filters: SearchFilters): Promise<RavelryResponse> {
 
   const credentials = Buffer.from(`${accessKey}:${accessSecret}`).toString('base64')
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      Accept: 'application/json',
-    },
-    cache: 'no-store',
-  })
+  const requestUrl = url.toString()
+  console.log('[Ravelry] GET', requestUrl)
+
+  let res: Response
+  try {
+    res = await fetch(requestUrl, {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        Accept: 'application/json',
+      },
+      cache: 'no-store',
+    })
+  } catch (err) {
+    console.error('[Ravelry] fetch threw:', err)
+    return { patterns: [], paginator: { results: 0 }, error: 'Network error reaching Ravelry.' }
+  }
 
   if (!res.ok) {
-    return { patterns: [], paginator: { results: 0 }, error: `Ravelry returned ${res.status}` }
+    let body = ''
+    try { body = await res.text() } catch { /* ignore */ }
+    console.error(`[Ravelry] ${res.status} response body:`, body)
+    return { patterns: [], paginator: { results: 0 }, error: `Ravelry returned ${res.status}: ${body.slice(0, 200)}` }
   }
 
   return res.json()
