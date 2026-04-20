@@ -1,6 +1,16 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import SearchBar from './ui/search-bar'
 import Nav from './ui/nav'
+
+function SearchBarFallback() {
+  return (
+    <div className="flex w-full max-w-2xl items-center gap-2">
+      <div className="h-14 flex-1 rounded-xl" style={{ backgroundColor: '#38342f', border: '1px solid #4a4440' }} />
+      <div className="h-14 w-24 rounded-xl" style={{ backgroundColor: '#C06B45', opacity: 0.7 }} />
+    </div>
+  )
+}
 
 const patterns = [
   {
@@ -139,7 +149,9 @@ export default function Home() {
           </p>
 
           <div className="flex justify-center">
-            <SearchBar />
+            <Suspense fallback={<SearchBarFallback />}>
+              <SearchBar />
+            </Suspense>
           </div>
 
           <p className="mt-4 text-sm" style={{ color: '#7a6e67' }}>
