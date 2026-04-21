@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       Authorization: `Basic ${credentials}`,
       Accept: 'application/json',
     },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
