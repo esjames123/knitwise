@@ -21,12 +21,13 @@ export async function GET(request: NextRequest) {
   const credentials = Buffer.from(`${accessKey}:${accessSecret}`).toString('base64')
 
   const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      Accept: 'application/json',
-    },
-    cache: 'no-store',
-  })
+  headers: {
+    Authorization: `Basic ${credentials}`,
+    Accept: 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+  },
+  cache: 'no-store',
+})
 
   if (!res.ok) {
     return Response.json(
