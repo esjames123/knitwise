@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q') ?? ''
@@ -6,36 +6,44 @@ export async function GET(request: NextRequest) {
   const accessKey = process.env.RAVELRY_ACCESS_KEY
   const accessSecret = process.env.RAVELRY_ACCESS_SECRET
 
+  // 1. Check if keys exist
   if (!accessKey || !accessSecret) {
-    return Response.json(
-      { error: 'Ravelry API credentials are not configured.' },
-      { status: 503 }
-    )
+    console.error("MISSING KEYS: Check Vercel Environment Variables")
+    return NextResponse.json({ error: 'Credentials not configured' }, { status: 503 })
   }
 
-  const url = new URL('https://api.ravelry.com/patterns/search.json')
-  url.searchParams.set('query', q)
-  url.searchParams.set('page_size', '20')
-  url.searchParams.set('sort', 'best')
+  const url = `https://api.ravelry.com/patterns/search.json?query=${encodeURIComponent(q)}&page_size=20&sort=best`
 
+  // 2. Safer Base64 Encoding
   const credentials = Buffer.from(`${accessKey}:${accessSecret}`).toString('base64')
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      'Authorization': `Basic ${credentials}`,
-      'Accept': 'application/json',
-      // This is the critical line Ravelry needs:
-      'User-Agent': 'KnitWiseApp/1.0 (erin@feralscene.com)',
-    },
-  })
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Accept': 'application/json',
+        'User-Agent': 'KnitWiseApp/1.0 (erin@feralscene.com)',
+      },
+      cache: 'no-store' // Prevents old broken responses from sticking around
+    })
 
-  if (!res.ok) {
-    return Response.json(
-      { error: `Ravelry returned ${res.status}` },
-      { status: res.status }
-    )
+    if (!res.ok) {
+      const errorData = await res.text()
+      // THIS LOGS TO YOUR VERCEL DASHBOARD:
+      console.error(`Ravelry API Error Status: ${res.status} | Body: ${errorData}`)
+      
+      return NextResponse.json(
+        { error: `Ravelry error ${res.status}`, detail: errorData },
+        { status: res.status }
+      )
+    }
+
+    const data = await res.json()
+    return NextResponse.json(data)
+
+  } catch (err: any) {
+    console.error("SERVER CRASH:", err.message)
+    return NextResponse.json({ error: "Server crashed", message: err.message }, { status: 500 })
   }
-
-  const data = await res.json()
-  return Response.json(data)
 }
