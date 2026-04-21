@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
 
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Basic ${credentials}`,
-      Accept: 'application/json',
+      'Authorization': `Basic ${credentials}`,
+      'Accept': 'application/json',
+      // This is the critical line Ravelry needs:
+      'User-Agent': 'KnitWiseApp/1.0 (erin@feralscene.com)',
     },
   })
 
