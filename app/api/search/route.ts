@@ -27,15 +27,21 @@ export async function GET(request: NextRequest) {
     })
 
     if (!res.ok) {
-      // Log the actual status code to see if it's a 401 (bad pass) or 500 (their end)
-      console.error(`LOG: Ravelry API responded with status ${res.status}`)
-      return NextResponse.json({ error: `Ravelry status ${res.status}` }, { status: res.status })
+      let body = ''
+      try { body = await res.text() } catch { /* ignore */ }
+      console.error(`[ravelry-route] status=${res.status} url=${url}`)
+      console.error(`[ravelry-route] response body:`, body)
+      return NextResponse.json(
+        { error: `Ravelry status ${res.status}`, detail: body.slice(0, 500) },
+        { status: res.status }
+      )
     }
 
     const data = await res.json()
     return NextResponse.json(data)
-  } catch (err: any) {
-    console.error("LOG: Fetch Crash", err.message)
-    return NextResponse.json({ error: "Fetch failed" }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[ravelry-route] fetch threw:', message)
+    return NextResponse.json({ error: 'Network error', detail: message }, { status: 500 })
   }
 }
