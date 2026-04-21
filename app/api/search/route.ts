@@ -6,16 +6,14 @@ export async function GET(request: NextRequest) {
   const accessKey = process.env.RAVELRY_ACCESS_KEY
   const accessSecret = process.env.RAVELRY_ACCESS_SECRET
 
-  // 1. Check if keys exist
   if (!accessKey || !accessSecret) {
-    console.error("MISSING KEYS: Check Vercel Environment Variables")
     return NextResponse.json({ error: 'Credentials not configured' }, { status: 503 })
   }
 
-  const url = `https://api.ravelry.com/patterns/search.json?query=${encodeURIComponent(q)}&page_size=20&sort=best`
+  // Universal Base64 encoding (Works on Edge and Node.js)
+  const credentials = btoa(`${accessKey}:${accessSecret}`)
 
-  // 2. Safer Base64 Encoding
-  const credentials = Buffer.from(`${accessKey}:${accessSecret}`).toString('base64')
+  const url = `https://api.ravelry.com/patterns/search.json?query=${encodeURIComponent(q)}&page_size=20&sort=best`
 
   try {
     const res = await fetch(url, {
@@ -25,25 +23,16 @@ export async function GET(request: NextRequest) {
         'Accept': 'application/json',
         'User-Agent': 'KnitWiseApp/1.0 (erin@feralscene.com)',
       },
-      cache: 'no-store' // Prevents old broken responses from sticking around
     })
 
     if (!res.ok) {
-      const errorData = await res.text()
-      // THIS LOGS TO YOUR VERCEL DASHBOARD:
-      console.error(`Ravelry API Error Status: ${res.status} | Body: ${errorData}`)
-      
-      return NextResponse.json(
-        { error: `Ravelry error ${res.status}`, detail: errorData },
-        { status: res.status }
-      )
+      const errorText = await res.text()
+      return NextResponse.json({ error: `Ravelry error ${res.status}`, detail: errorText }, { status: res.status })
     }
 
     const data = await res.json()
     return NextResponse.json(data)
-
   } catch (err: any) {
-    console.error("SERVER CRASH:", err.message)
-    return NextResponse.json({ error: "Server crashed", message: err.message }, { status: 500 })
+    return NextResponse.json({ error: "Fetch failed", message: err.message }, { status: 500 })
   }
 }
