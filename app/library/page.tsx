@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/app/ui/nav'
@@ -17,46 +17,118 @@ type SavedPattern = {
   created_at: string
 }
 
+function TrashIcon() {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="white" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    </svg>
+  )
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="white" strokeWidth="2.5"
+      strokeLinecap="round"
+      className="animate-spin"
+    >
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
+  )
+}
+
+function CardSkeleton() {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
+    >
+      <div className="animate-pulse" style={{ height: 180, backgroundColor: '#38342f' }} />
+      <div className="p-5 space-y-3">
+        <div className="h-5 w-3/4 animate-pulse rounded" style={{ backgroundColor: '#38342f' }} />
+        <div className="h-4 w-1/2 animate-pulse rounded" style={{ backgroundColor: '#38342f' }} />
+        <div className="h-9 w-full animate-pulse rounded-lg" style={{ backgroundColor: '#38342f' }} />
+      </div>
+    </div>
+  )
+}
+
 export default function LibraryPage() {
   const router = useRouter()
-  const [patterns, setPatterns] = useState<SavedPattern[]>([])
-  const [loading, setLoading] = useState(true)
+  const [patterns, setPatterns]     = useState<SavedPattern[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError]           = useState<string | null>(null)
+  const tokenRef                    = useRef<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.replace('/login'); return }
 
-      const { data, error } = await supabase
-        .from('saved_patterns')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
+      tokenRef.current = session.access_token
 
-      if (error) console.error('[Library] fetch failed:', error.message)
-      setPatterns(data ?? [])
+      const res = await fetch('/api/patterns/saved', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+
+      if (cancelled) return
+
+      if (!res.ok) {
+        setError('Could not load your library. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      setPatterns(await res.json())
       setLoading(false)
     }
 
     load()
+    return () => { cancelled = true }
   }, [router])
 
-  async function unsave(rowId: string, patternId: number) {
-    setPatterns(prev => prev.filter(p => p.id !== rowId))
-    await supabase.from('saved_patterns').delete().eq('id', rowId)
-    // no-op if delete fails — UI is already updated optimistically
-    void patternId
+  async function handleDelete(rowId: string) {
+    if (deletingId) return
+
+    // Re-check session in case it refreshed
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    setDeletingId(rowId)
+
+    const res = await fetch(`/api/patterns/saved/${rowId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+
+    if (res.ok) {
+      setPatterns(prev => prev.filter(p => p.id !== rowId))
+    } else {
+      console.error('[Library] delete failed:', res.status)
+    }
+
+    setDeletingId(null)
   }
 
   return (
     <div style={{ backgroundColor: '#242220', color: '#f5f0eb', minHeight: '100vh' }}>
       <Nav />
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-8 flex items-baseline justify-between">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+
+        {/* ── Header ── */}
+        <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>My Library</h1>
-            {!loading && (
+            {!loading && !error && (
               <p className="mt-1 text-sm" style={{ color: '#7a6e67' }}>
                 {patterns.length} {patterns.length === 1 ? 'pattern' : 'patterns'} saved
               </p>
@@ -64,34 +136,31 @@ export default function LibraryPage() {
           </div>
           <Link
             href="/search"
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: '#C06B45' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]"
           >
             Find patterns
           </Link>
         </div>
 
-        {loading && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-2xl overflow-hidden"
-                style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
-              >
-                <div className="animate-pulse" style={{ height: 180, backgroundColor: '#38342f' }} />
-                <div className="p-5 space-y-2">
-                  <div className="h-4 rounded" style={{ backgroundColor: '#38342f', width: '70%' }} />
-                  <div className="h-3 rounded" style={{ backgroundColor: '#38342f', width: '50%' }} />
-                </div>
-              </div>
-            ))}
+        {/* ── Error ── */}
+        {error && (
+          <div
+            className="rounded-xl px-6 py-4 text-center text-sm"
+            style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}
+          >
+            {error}
           </div>
         )}
 
-        {!loading && patterns.length === 0 && (
+        {/* ── Loading skeletons ── */}
+        {loading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
+          </div>
+        )}
+
+        {/* ── Empty state ── */}
+        {!loading && !error && patterns.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <svg
               width="48" height="48" viewBox="0 0 24 24"
@@ -99,101 +168,105 @@ export default function LibraryPage() {
               strokeLinecap="round" strokeLinejoin="round"
               className="mb-4"
             >
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
             <p className="text-lg font-medium" style={{ color: '#9a8e87' }}>No saved patterns yet</p>
             <p className="mt-1 text-sm" style={{ color: '#5a504a' }}>
-              Hit the bookmark icon on any search result to save it here.
+              Hit the heart on any search result to save it here.
             </p>
             <Link
               href="/search"
-              className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: '#C06B45' }}
+              className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors"
             >
               Search patterns
             </Link>
           </div>
         )}
 
-        {!loading && patterns.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {patterns.map(pattern => (
-              <div
-                key={pattern.id}
-                className="flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
-                style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
-              >
-                {/* Photo or placeholder */}
-                <div className="relative w-full overflow-hidden" style={{ height: 180 }}>
-                  {pattern.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={pattern.photo_url}
-                      alt={pattern.pattern_name}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
-                        opacity: 0.7,
-                      }}
-                    />
-                  )}
-
-                  {/* Unsave button */}
-                  <button
-                    onClick={() => unsave(pattern.id, pattern.pattern_id)}
-                    aria-label="Remove from library"
-                    className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full transition-all"
+        {/* ── Grid ── */}
+        {!loading && !error && patterns.length > 0 && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {patterns.map(pattern => {
+                const isDeleting = deletingId === pattern.id
+                return (
+                  <div
+                    key={pattern.id}
+                    className="flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
                     style={{
-                      backgroundColor: '#C06B45',
-                      border: '1px solid #C06B45',
-                      backdropFilter: 'blur(4px)',
+                      backgroundColor: '#2e2b28',
+                      border: '1px solid #3a3530',
+                      opacity: isDeleting ? 0.5 : 1,
+                      transition: 'opacity 200ms, transform 150ms',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#8b4a2a')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
                   >
-                    <svg
-                      width="14" height="14" viewBox="0 0 24 24"
-                      fill="white" stroke="white" strokeWidth="2"
-                      strokeLinecap="round" strokeLinejoin="round"
-                    >
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </button>
-                </div>
+                    {/* Image / placeholder */}
+                    <div className="relative w-full overflow-hidden" style={{ height: '180px' }}>
+                      {pattern.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={pattern.photo_url}
+                          alt={pattern.pattern_name}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                            opacity: 0.7,
+                          }}
+                        />
+                      )}
 
-                <div className="flex flex-1 flex-col p-5 gap-3">
-                  <div>
-                    <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
-                      {pattern.pattern_name}
-                    </h2>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
-                      {pattern.designer_name && <span>by {pattern.designer_name}</span>}
-                      {pattern.designer_name && <span aria-hidden="true">·</span>}
-                      <RavelryCardCredit />
-                    </p>
-                  </div>
+                      {/* Delete button */}
+                      <button
+                        onClick={() => handleDelete(pattern.id)}
+                        disabled={!!deletingId}
+                        aria-label="Remove from library"
+                        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150"
+                        style={{
+                          backgroundColor: isDeleting ? '#8b4a2a' : 'rgba(26,23,20,0.70)',
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          backdropFilter: 'blur(6px)',
+                          cursor: deletingId ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {isDeleting ? <SpinnerIcon /> : <TrashIcon />}
+                      </button>
+                    </div>
 
-                  <div className="mt-auto pt-2">
-                    <Link
-                      href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ravelry-link block rounded-lg py-2 text-center text-sm font-semibold text-white transition-colors"
-                    >
-                      View on Ravelry →
-                    </Link>
+                    {/* Card body */}
+                    <div className="flex flex-1 flex-col p-5 gap-3">
+                      <div>
+                        <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
+                          {pattern.pattern_name}
+                        </h2>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
+                          {pattern.designer_name && <span>by {pattern.designer_name}</span>}
+                          {pattern.designer_name && <span aria-hidden="true">·</span>}
+                          <RavelryCardCredit />
+                        </p>
+                      </div>
+
+                      <div className="mt-auto pt-2">
+                        <Link
+                          href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ravelry-link block rounded-lg py-2 text-center text-sm font-semibold transition-colors text-white"
+                        >
+                          View on Ravelry →
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+            <RavelryFooter />
+          </>
         )}
-
-        {!loading && <RavelryFooter />}
       </div>
     </div>
   )
