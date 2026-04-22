@@ -35,10 +35,14 @@ export default function Nav() {
     setMenuOpen(false)
   }
 
-  const navLinks = [
-    { href: '/search',  label: 'Explore'    },
-    { href: '/library', label: 'My Library' },
+  const publicLinks = [
+    { href: '/search', label: 'Explore' },
   ]
+  const authLinks = [
+    { href: '/library', label: 'My Library' },
+    { href: '/profile', label: 'Profile'    },
+  ]
+  const navLinks = [...publicLinks, ...(user ? authLinks : [])]
 
   return (
     <>
