@@ -4,6 +4,7 @@ import SearchBar from '@/app/ui/search-bar'
 import FilterSidebar from '@/app/ui/filter-sidebar'
 import { buildActiveChips } from '@/app/lib/filter-chips'
 import SaveButton from '@/app/ui/save-button'
+import { DesignerPopover } from '@/app/ui/designer-popover'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -372,7 +373,9 @@ export default async function SearchPage({
                                   {pattern.name}
                                 </h2>
                                 <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
-                                  {pattern.designer && <span>by {pattern.designer.name}</span>}
+                                  {pattern.designer && (
+                                    <span>by <DesignerPopover name={pattern.designer.name} /></span>
+                                  )}
                                   {pattern.designer && <span aria-hidden="true">·</span>}
                                   <RavelryCardCredit />
                                 </p>

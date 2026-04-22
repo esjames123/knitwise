@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/app/ui/nav'
 import { supabase } from '@/lib/supabase'
+import { DesignerPopover } from '@/app/ui/designer-popover'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 type SavedPattern = {
@@ -445,7 +446,9 @@ export default function LibraryPage() {
                           {pattern.pattern_name}
                         </h2>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
-                          {pattern.designer_name && <span>by {pattern.designer_name}</span>}
+                          {pattern.designer_name && (
+                            <span>by <DesignerPopover name={pattern.designer_name} /></span>
+                          )}
                           {pattern.designer_name && <span aria-hidden="true">·</span>}
                           <RavelryCardCredit />
                         </p>
