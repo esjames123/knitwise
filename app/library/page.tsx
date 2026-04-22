@@ -19,7 +19,12 @@ type SavedPattern = {
 
 type FavoriteDesigner = {
   id: string
+  ravelry_designer_id: number
   designer_name: string
+  designer_bio: string | null
+  designer_photo_url: string | null
+  follower_count: number | null
+  ravelry_permalink: string | null
   created_at: string
 }
 
@@ -72,11 +77,11 @@ export default function LibraryPage() {
   const [error, setError]                 = useState<string | null>(null)
   const tokenRef                          = useRef<string | null>(null)
 
-  const [designers, setDesigners]         = useState<FavoriteDesigner[]>([])
-  const [newDesigner, setNewDesigner]     = useState('')
-  const [addingDesigner, setAddingDesigner] = useState(false)
+  const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
+  const [newDesigner, setNewDesigner]               = useState('')
+  const [addingDesigner, setAddingDesigner]         = useState(false)
   const [removingDesignerId, setRemovingDesignerId] = useState<string | null>(null)
-  const [designerError, setDesignerError] = useState<string | null>(null)
+  const [designerError, setDesignerError]           = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -93,7 +98,7 @@ export default function LibraryPage() {
         }),
         supabase
           .from('favorite_designers')
-          .select('id, designer_name, created_at')
+          .select('id, ravelry_designer_id, designer_name, designer_bio, designer_photo_url, follower_count, ravelry_permalink, created_at')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false }),
       ])
@@ -126,18 +131,25 @@ export default function LibraryPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.replace('/login'); return }
 
-    const { data, error } = await supabase
-      .from('favorite_designers')
-      .insert({ user_id: session.user.id, designer_name: name })
-      .select('id, designer_name, created_at')
-      .single()
+    const res = await fetch('/api/designers/favorite', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ designer_name: name }),
+    })
 
-    if (error) {
+    const json = await res.json()
+
+    if (!res.ok) {
       setDesignerError(
-        error.code === '23505' ? 'Already in your favorites.' : 'Could not add designer.'
+        res.status === 409 ? 'Already in your favorites.' :
+        res.status === 404 ? `Could not find "${name}" on Ravelry.` :
+        'Could not add designer.'
       )
-    } else if (data) {
-      setDesigners(prev => [data, ...prev])
+    } else {
+      setDesigners(prev => [json, ...prev])
       setNewDesigner('')
     }
 
@@ -287,17 +299,17 @@ export default function LibraryPage() {
               <p className="mb-4 text-xs" style={{ color: '#e0a090' }}>{designerError}</p>
             )}
 
-            {/* Designer chips */}
+            {/* Designer cards */}
             {designers.length === 0 ? (
               <p className="text-sm" style={{ color: '#5a504a' }}>
                 No favorite designers yet. Add one above.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {designers.map(d => (
                   <div
                     key={d.id}
-                    className="flex items-center gap-2 rounded-full px-3 py-1.5"
+                    className="flex gap-3 rounded-xl p-3"
                     style={{
                       backgroundColor: '#38342f',
                       border: '1px solid #4a4440',
@@ -305,27 +317,67 @@ export default function LibraryPage() {
                       transition: 'opacity 150ms',
                     }}
                   >
-                    <Link
-                      href={`/search?q=${encodeURIComponent(d.designer_name)}`}
-                      className="text-sm font-medium transition-colors hover:text-white"
-                      style={{ color: '#c4b8ae' }}
+                    {/* Photo */}
+                    <div
+                      className="flex-shrink-0 rounded-full overflow-hidden"
+                      style={{ width: 48, height: 48, backgroundColor: '#2e2b28' }}
                     >
-                      {d.designer_name}
-                    </Link>
-                    <button
-                      onClick={() => handleRemoveDesigner(d.id)}
-                      disabled={!!removingDesignerId}
-                      aria-label={`Remove ${d.designer_name}`}
-                      className="flex h-4 w-4 items-center justify-center rounded-full transition-colors"
-                      style={{ color: '#7a6e67' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
-                      onMouseLeave={e => (e.currentTarget.style.color = '#7a6e67')}
-                    >
-                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none"
-                           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M2 2l8 8M10 2l-8 8" />
-                      </svg>
-                    </button>
+                      {d.designer_photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={d.designer_photo_url}
+                          alt={d.designer_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-sm font-bold"
+                          style={{ color: '#C06B45' }}
+                        >
+                          {d.designer_name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <Link
+                          href={`/search?q=${encodeURIComponent(d.designer_name)}`}
+                          className="text-sm font-semibold leading-snug truncate transition-colors hover:text-white"
+                          style={{ color: '#f5f0eb' }}
+                        >
+                          {d.designer_name}
+                        </Link>
+                        <button
+                          onClick={() => handleRemoveDesigner(d.id)}
+                          disabled={!!removingDesignerId}
+                          aria-label={`Remove ${d.designer_name}`}
+                          className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full transition-colors"
+                          style={{ color: '#5a504a' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#5a504a')}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 12 12" fill="none"
+                               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M2 2l8 8M10 2l-8 8" />
+                          </svg>
+                        </button>
+                      </div>
+                      {d.follower_count != null && (
+                        <p className="text-xs mt-0.5" style={{ color: '#7a6e67' }}>
+                          {d.follower_count.toLocaleString()} followers
+                        </p>
+                      )}
+                      {d.designer_bio && (
+                        <p
+                          className="text-xs mt-1 leading-relaxed line-clamp-2"
+                          style={{ color: '#9a8e87' }}
+                        >
+                          {d.designer_bio}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
