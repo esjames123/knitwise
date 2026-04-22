@@ -66,9 +66,6 @@ export default function Nav() {
                 {l.label}
               </Link>
             ))}
-            <Link href="#" className="transition-colors hover:text-white" style={{ color: '#c4b8ae' }}>
-              Designers
-            </Link>
           </div>
 
           {/* Desktop auth */}
@@ -137,12 +134,6 @@ export default function Nav() {
                 {l.label}
               </Link>
             ))}
-            <Link href="#"
-              className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors"
-              style={{ color: '#c4b8ae' }}>
-              Designers
-            </Link>
-
             {/* Divider */}
             <div className="my-3" style={{ borderTop: '1px solid #3a3530' }} />
 
