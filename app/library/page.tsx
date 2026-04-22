@@ -17,6 +17,12 @@ type SavedPattern = {
   created_at: string
 }
 
+type FavoriteDesigner = {
+  id: string
+  designer_name: string
+  created_at: string
+}
+
 function TrashIcon() {
   return (
     <svg
@@ -60,11 +66,17 @@ function CardSkeleton() {
 
 export default function LibraryPage() {
   const router = useRouter()
-  const [patterns, setPatterns]     = useState<SavedPattern[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [error, setError]           = useState<string | null>(null)
-  const tokenRef                    = useRef<string | null>(null)
+  const [patterns, setPatterns]           = useState<SavedPattern[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [deletingId, setDeletingId]       = useState<string | null>(null)
+  const [error, setError]                 = useState<string | null>(null)
+  const tokenRef                          = useRef<string | null>(null)
+
+  const [designers, setDesigners]         = useState<FavoriteDesigner[]>([])
+  const [newDesigner, setNewDesigner]     = useState('')
+  const [addingDesigner, setAddingDesigner] = useState(false)
+  const [removingDesignerId, setRemovingDesignerId] = useState<string | null>(null)
+  const [designerError, setDesignerError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -75,25 +87,71 @@ export default function LibraryPage() {
 
       tokenRef.current = session.access_token
 
-      const res = await fetch('/api/patterns/saved', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
+      const [patternsRes, designersRes] = await Promise.all([
+        fetch('/api/patterns/saved', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
+        supabase
+          .from('favorite_designers')
+          .select('id, designer_name, created_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false }),
+      ])
 
       if (cancelled) return
 
-      if (!res.ok) {
+      if (!patternsRes.ok) {
         setError('Could not load your library. Please try again.')
         setLoading(false)
         return
       }
 
-      setPatterns(await res.json())
+      setPatterns(await patternsRes.json())
+      setDesigners(designersRes.data ?? [])
       setLoading(false)
     }
 
     load()
     return () => { cancelled = true }
   }, [router])
+
+  async function handleAddDesigner(e: React.FormEvent) {
+    e.preventDefault()
+    const name = newDesigner.trim()
+    if (!name) return
+
+    setAddingDesigner(true)
+    setDesignerError(null)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const { data, error } = await supabase
+      .from('favorite_designers')
+      .insert({ user_id: session.user.id, designer_name: name })
+      .select('id, designer_name, created_at')
+      .single()
+
+    if (error) {
+      setDesignerError(
+        error.code === '23505' ? 'Already in your favorites.' : 'Could not add designer.'
+      )
+    } else if (data) {
+      setDesigners(prev => [data, ...prev])
+      setNewDesigner('')
+    }
+
+    setAddingDesigner(false)
+  }
+
+  async function handleRemoveDesigner(id: string) {
+    if (removingDesignerId) return
+    setRemovingDesignerId(id)
+
+    await supabase.from('favorite_designers').delete().eq('id', id)
+    setDesigners(prev => prev.filter(d => d.id !== id))
+    setRemovingDesignerId(null)
+  }
 
   async function handleDelete(rowId: string) {
     if (deletingId) return
@@ -180,6 +238,98 @@ export default function LibraryPage() {
             >
               Search patterns
             </Link>
+          </div>
+        )}
+
+        {/* ── Favorite Designers ── */}
+        {!loading && !error && (
+          <div
+            className="rounded-2xl p-6"
+            style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Favorite Designers</h2>
+                {designers.length > 0 && (
+                  <p className="mt-0.5 text-sm" style={{ color: '#7a6e67' }}>
+                    {designers.length} {designers.length === 1 ? 'designer' : 'designers'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Add form */}
+            <form onSubmit={handleAddDesigner} className="mb-5 flex gap-2">
+              <input
+                type="text"
+                value={newDesigner}
+                onChange={e => { setNewDesigner(e.target.value); setDesignerError(null) }}
+                placeholder="Designer name…"
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none"
+                style={{
+                  backgroundColor: '#38342f',
+                  border: `1px solid ${designerError ? '#e05050' : '#4a4440'}`,
+                  color: '#f5f0eb',
+                }}
+                onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+                onBlur={e   => (e.currentTarget.style.borderColor = designerError ? '#e05050' : '#4a4440')}
+              />
+              <button
+                type="submit"
+                disabled={addingDesigner || !newDesigner.trim()}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                style={{ backgroundColor: '#C06B45' }}
+              >
+                {addingDesigner ? 'Adding…' : 'Add'}
+              </button>
+            </form>
+            {designerError && (
+              <p className="mb-4 text-xs" style={{ color: '#e0a090' }}>{designerError}</p>
+            )}
+
+            {/* Designer chips */}
+            {designers.length === 0 ? (
+              <p className="text-sm" style={{ color: '#5a504a' }}>
+                No favorite designers yet. Add one above.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {designers.map(d => (
+                  <div
+                    key={d.id}
+                    className="flex items-center gap-2 rounded-full px-3 py-1.5"
+                    style={{
+                      backgroundColor: '#38342f',
+                      border: '1px solid #4a4440',
+                      opacity: removingDesignerId === d.id ? 0.4 : 1,
+                      transition: 'opacity 150ms',
+                    }}
+                  >
+                    <Link
+                      href={`/search?q=${encodeURIComponent(d.designer_name)}`}
+                      className="text-sm font-medium transition-colors hover:text-white"
+                      style={{ color: '#c4b8ae' }}
+                    >
+                      {d.designer_name}
+                    </Link>
+                    <button
+                      onClick={() => handleRemoveDesigner(d.id)}
+                      disabled={!!removingDesignerId}
+                      aria-label={`Remove ${d.designer_name}`}
+                      className="flex h-4 w-4 items-center justify-center rounded-full transition-colors"
+                      style={{ color: '#7a6e67' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '#7a6e67')}
+                    >
+                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none"
+                           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M2 2l8 8M10 2l-8 8" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
