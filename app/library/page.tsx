@@ -83,16 +83,34 @@ function CollectionPicker({
   onAssign: (patternId: string, collectionId: string | null) => Promise<void>
 }) {
   const [open, setOpen]       = useState(false)
+  const [opensUp, setOpensUp] = useState(false)
   const [saving, setSaving]   = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const buttonRef  = useRef<HTMLButtonElement>(null)
+
+  function handleToggle() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      // Estimate: header row + (N items × 36px) + 8px padding, capped at 280
+      const estimatedHeight = Math.min((collections.length + 2) * 36 + 40, 280)
+      setOpensUp(window.innerHeight - rect.bottom < estimatedHeight + 8)
+    }
+    setOpen(v => !v)
+  }
 
   useEffect(() => {
     if (!open) return
     function onMouseDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
     }
+    function onScroll() { setOpen(false) }
     document.addEventListener('mousedown', onMouseDown)
-    return () => document.removeEventListener('mousedown', onMouseDown)
+    // close if user scrolls (position would drift)
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('scroll', onScroll, { capture: true })
+    }
   }, [open])
 
   async function pick(collectionId: string | null) {
@@ -105,9 +123,10 @@ function CollectionPicker({
   const current = collections.find(c => c.id === pattern.collection_id)
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={wrapperRef} className="relative">
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={buttonRef}
+        onClick={handleToggle}
         disabled={saving}
         title={current ? `Collection: ${current.name}` : 'Add to collection'}
         className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#3a3530] disabled:opacity-40"
@@ -128,13 +147,19 @@ function CollectionPicker({
 
       {open && (
         <div
-          className="absolute z-50 mt-1 rounded-xl overflow-hidden shadow-xl"
+          className="absolute rounded-xl shadow-xl"
           style={{
             backgroundColor: '#2a2724',
             border: '1px solid #4a4440',
             minWidth: '180px',
+            maxHeight: '280px',
+            overflowY: 'auto',
             right: 0,
-            top: '100%',
+            zIndex: 200,
+            // flip upward when near bottom of viewport
+            ...(opensUp
+              ? { bottom: 'calc(100% + 6px)' }
+              : { top:    'calc(100% + 6px)' }),
           }}
         >
           <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
@@ -716,7 +741,7 @@ export default function LibraryPage() {
                       return (
                         <div
                           key={pattern.id}
-                          className="flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
+                          className="flex flex-col rounded-2xl transition-transform hover:-translate-y-1"
                           style={{
                             backgroundColor: '#2e2b28',
                             border: '1px solid #3a3530',
@@ -724,8 +749,8 @@ export default function LibraryPage() {
                             transition: 'opacity 200ms, transform 150ms',
                           }}
                         >
-                          {/* Image */}
-                          <div className="relative w-full overflow-hidden" style={{ height: '180px' }}>
+                          {/* Image — rounded-t-2xl clips image to card corners without hiding the dropdown */}
+                          <div className="relative w-full overflow-hidden rounded-t-2xl" style={{ height: '180px' }}>
                             {pattern.photo_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
