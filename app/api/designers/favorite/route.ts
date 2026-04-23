@@ -83,7 +83,16 @@ export async function POST(request: Request) {
   }
 
   const profileData = await profileRes.json()
-  const designer: RavelryDesigner = profileData.designer
+  console.log('[designers/favorite] Profile response keys:', Object.keys(profileData))
+
+  const designer: RavelryDesigner | undefined = profileData.designer ?? profileData.designers?.[0]
+  if (!designer) {
+    console.error('[designers/favorite] No designer in response. Full response:', JSON.stringify(profileData).slice(0, 500))
+    return Response.json(
+      { error: `Unexpected Ravelry response for designer "${permalink}".` },
+      { status: 502 }
+    )
+  }
   console.log('[designers/favorite] Designer profile:', { id: designer.id, name: designer.name, permalink: designer.permalink })
 
   const photoUrl =
