@@ -9,6 +9,7 @@ import { DesignerPopover } from '@/app/ui/designer-popover'
 import { CollectionForm } from '@/app/ui/collection-form'
 import type { CollectionPayload } from '@/app/ui/collection-form'
 import { NotesModal } from '@/app/ui/notes-modal'
+import { StashBuster } from '@/app/ui/stash-buster'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 type SavedPattern = {
@@ -539,6 +540,12 @@ export default function LibraryPage() {
         {loading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
+          </div>
+        )}
+
+        {!loading && !error && (
+          <div className="mb-6">
+            <StashBuster patterns={patterns} collections={collections} />
           </div>
         )}
 
