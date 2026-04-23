@@ -25,11 +25,16 @@ export async function PATCH(
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .select()
-    .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  if (!data) return Response.json({ error: 'Not found' }, { status: 404 })
-  return Response.json(data)
+  if (error) {
+    console.error('[PATCH patterns/saved/id] code:', error.code, 'msg:', error.message)
+    return Response.json({ error: error.message, code: error.code }, { status: 500 })
+  }
+  if (!data || data.length === 0) {
+    console.error('[PATCH patterns/saved/id] 0 rows — id not found or collection_id column missing')
+    return Response.json({ error: 'Pattern not found or collection_id column missing — run DB migration' }, { status: 404 })
+  }
+  return Response.json(data[0])
 }
 
 export async function DELETE(

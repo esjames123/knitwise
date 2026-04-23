@@ -42,17 +42,16 @@ export async function PATCH(
     .eq('id', pattern_id)
     .eq('user_id', auth.user.id)
     .select()
-    .single()
 
   if (error) {
-    console.error('[PATCH collections/patterns] DB update error:', error.code, error.message)
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('[PATCH collections/patterns] DB update error — code:', error.code, 'msg:', error.message, 'details:', error.details)
+    return Response.json({ error: error.message, code: error.code }, { status: 500 })
   }
-  if (!data) {
-    console.error('[PATCH collections/patterns] Pattern not found after update')
-    return Response.json({ error: 'Pattern not found' }, { status: 404 })
+  if (!data || data.length === 0) {
+    console.error('[PATCH collections/patterns] 0 rows updated — pattern_id may not exist or column missing')
+    return Response.json({ error: 'Pattern not found or collection_id column missing — run DB migration' }, { status: 404 })
   }
 
-  console.log('[PATCH collections/patterns] Success, collection_id now:', data.collection_id)
-  return Response.json(data)
+  console.log('[PATCH collections/patterns] Success, rows updated:', data.length)
+  return Response.json(data[0])
 }
