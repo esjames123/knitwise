@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Nav from '@/app/ui/nav'
 import { supabase } from '@/lib/supabase'
 import { DesignerPopover } from '@/app/ui/designer-popover'
+import { CollectionForm } from '@/app/ui/collection-form'
+import type { CollectionPayload } from '@/app/ui/collection-form'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 type SavedPattern = {
@@ -15,6 +17,15 @@ type SavedPattern = {
   designer_name: string | null
   permalink: string
   photo_url: string | null
+  collection_id: string | null
+  created_at: string
+}
+
+type Collection = {
+  id: string
+  name: string
+  description: string | null
+  color: string
   created_at: string
 }
 
@@ -31,11 +42,8 @@ type FavoriteDesigner = {
 
 function TrashIcon() {
   return (
-    <svg
-      width="14" height="14" viewBox="0 0 24 24"
-      fill="none" stroke="white" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round"
-    >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
     </svg>
   )
@@ -43,12 +51,8 @@ function TrashIcon() {
 
 function SpinnerIcon() {
   return (
-    <svg
-      width="14" height="14" viewBox="0 0 24 24"
-      fill="none" stroke="white" strokeWidth="2.5"
-      strokeLinecap="round"
-      className="animate-spin"
-    >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+         strokeLinecap="round" className="animate-spin">
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </svg>
   )
@@ -56,10 +60,7 @@ function SpinnerIcon() {
 
 function CardSkeleton() {
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
-    >
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
       <div className="animate-pulse" style={{ height: 180, backgroundColor: '#38342f' }} />
       <div className="p-5 space-y-3">
         <div className="h-5 w-3/4 animate-pulse rounded" style={{ backgroundColor: '#38342f' }} />
@@ -70,14 +71,135 @@ function CardSkeleton() {
   )
 }
 
+// ── Collection picker popover on each pattern card ──────────────────────────
+
+function CollectionPicker({
+  pattern,
+  collections,
+  onAssign,
+}: {
+  pattern: SavedPattern
+  collections: Collection[]
+  onAssign: (patternId: string, collectionId: string | null) => Promise<void>
+}) {
+  const [open, setOpen]       = useState(false)
+  const [saving, setSaving]   = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [open])
+
+  async function pick(collectionId: string | null) {
+    setSaving(true)
+    await onAssign(pattern.id, collectionId)
+    setSaving(false)
+    setOpen(false)
+  }
+
+  const current = collections.find(c => c.id === pattern.collection_id)
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        disabled={saving}
+        title={current ? `Collection: ${current.name}` : 'Add to collection'}
+        className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#3a3530] disabled:opacity-40"
+        style={{ color: current ? current.color : '#5a504a' }}
+      >
+        {saving ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+        ) : (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill={current ? 'currentColor' : 'none'}
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-50 mt-1 rounded-xl overflow-hidden shadow-xl"
+          style={{
+            backgroundColor: '#2a2724',
+            border: '1px solid #4a4440',
+            minWidth: '180px',
+            right: 0,
+            top: '100%',
+          }}
+        >
+          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+             style={{ color: '#7a6e67', borderBottom: '1px solid #3a3530' }}>
+            Move to collection
+          </p>
+
+          <button
+            onClick={() => pick(null)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#3a3530]"
+            style={{ color: !pattern.collection_id ? '#f5f0eb' : '#9a8e87' }}
+          >
+            <span className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: '#4a4440' }} />
+            No collection
+            {!pattern.collection_id && <span className="ml-auto text-xs" style={{ color: '#C06B45' }}>✓</span>}
+          </button>
+
+          {collections.map(c => (
+            <button
+              key={c.id}
+              onClick={() => pick(c.id)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#3a3530]"
+              style={{ color: pattern.collection_id === c.id ? '#f5f0eb' : '#9a8e87' }}
+            >
+              <span className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: c.color }} />
+              {c.name}
+              {pattern.collection_id === c.id && (
+                <span className="ml-auto text-xs" style={{ color: '#C06B45' }}>✓</span>
+              )}
+            </button>
+          ))}
+
+          {collections.length === 0 && (
+            <p className="px-3 py-2 text-xs" style={{ color: '#5a504a' }}>
+              No collections yet
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function LibraryPage() {
   const router = useRouter()
-  const [patterns, setPatterns]           = useState<SavedPattern[]>([])
-  const [loading, setLoading]             = useState(true)
-  const [deletingId, setDeletingId]       = useState<string | null>(null)
-  const [error, setError]                 = useState<string | null>(null)
-  const tokenRef                          = useRef<string | null>(null)
 
+  // Patterns
+  const [patterns, setPatterns]     = useState<SavedPattern[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError]           = useState<string | null>(null)
+  const tokenRef                    = useRef<string | null>(null)
+
+  // Collections
+  const [collections, setCollections]           = useState<Collection[]>([])
+  const [selectedCollId, setSelectedCollId]     = useState<string | 'uncategorized' | null>(null)
+  const [showCollForm, setShowCollForm]         = useState(false)
+  const [editingColl, setEditingColl]           = useState<Collection | null>(null)
+  const [deletingCollId, setDeletingCollId]     = useState<string | null>(null)
+
+  // Favorite designers
   const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
   const [newDesigner, setNewDesigner]               = useState('')
   const [addingDesigner, setAddingDesigner]         = useState(false)
@@ -90,10 +212,9 @@ export default function LibraryPage() {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.replace('/login'); return }
-
       tokenRef.current = session.access_token
 
-      const [patternsRes, designersRes] = await Promise.all([
+      const [patternsRes, designersRes, collectionsRes] = await Promise.all([
         fetch('/api/patterns/saved', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }),
@@ -102,6 +223,9 @@ export default function LibraryPage() {
           .select('id, ravelry_designer_id, designer_name, designer_bio, designer_photo_url, follower_count, ravelry_permalink, created_at')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false }),
+        fetch('/api/collections', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
       ])
 
       if (cancelled) return
@@ -114,6 +238,7 @@ export default function LibraryPage() {
 
       setPatterns(await patternsRes.json())
       setDesigners(designersRes.data ?? [])
+      if (collectionsRes.ok) setCollections(await collectionsRes.json())
       setLoading(false)
     }
 
@@ -121,11 +246,123 @@ export default function LibraryPage() {
     return () => { cancelled = true }
   }, [router])
 
+  // ── Collection CRUD ─────────────────────────────────────────────────────────
+
+  async function handleCreateCollection(payload: CollectionPayload) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch('/api/collections', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error ?? 'Could not create collection')
+    }
+    const created: Collection = await res.json()
+    setCollections(prev => [...prev, created])
+    setSelectedCollId(created.id)
+  }
+
+  async function handleEditCollection(payload: CollectionPayload) {
+    if (!editingColl) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/collections/${editingColl.id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error ?? 'Could not update collection')
+    }
+    const updated: Collection = await res.json()
+    setCollections(prev => prev.map(c => c.id === updated.id ? updated : c))
+  }
+
+  async function handleDeleteCollection(id: string) {
+    if (deletingCollId) return
+    setDeletingCollId(id)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    await fetch(`/api/collections/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+
+    setCollections(prev => prev.filter(c => c.id !== id))
+    // Clear collection_id from any patterns that were in this collection
+    setPatterns(prev => prev.map(p => p.collection_id === id ? { ...p, collection_id: null } : p))
+    if (selectedCollId === id) setSelectedCollId(null)
+    setDeletingCollId(null)
+  }
+
+  // ── Pattern → collection assignment ────────────────────────────────────────
+
+  async function handleAssignCollection(patternId: string, collectionId: string | null) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = collectionId
+      ? await fetch(`/api/collections/${collectionId}/patterns`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ pattern_id: patternId }),
+        })
+      : await fetch(`/api/patterns/saved/${patternId}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ collection_id: null }),
+        })
+
+    if (res.ok) {
+      setPatterns(prev =>
+        prev.map(p => p.id === patternId ? { ...p, collection_id: collectionId } : p)
+      )
+    }
+  }
+
+  // ── Pattern delete ──────────────────────────────────────────────────────────
+
+  async function handleDelete(rowId: string) {
+    if (deletingId) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+    setDeletingId(rowId)
+
+    const res = await fetch(`/api/patterns/saved/${rowId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (res.ok) setPatterns(prev => prev.filter(p => p.id !== rowId))
+    else console.error('[Library] delete failed:', res.status)
+    setDeletingId(null)
+  }
+
+  // ── Favorite designers ──────────────────────────────────────────────────────
+
   async function handleAddDesigner(e: React.FormEvent) {
     e.preventDefault()
     const name = newDesigner.trim()
     if (!name) return
-
     setAddingDesigner(true)
     setDesignerError(null)
 
@@ -140,7 +377,6 @@ export default function LibraryPage() {
       },
       body: JSON.stringify({ designer_name: name }),
     })
-
     const json = await res.json()
 
     if (!res.ok) {
@@ -153,41 +389,31 @@ export default function LibraryPage() {
       setDesigners(prev => [json, ...prev])
       setNewDesigner('')
     }
-
     setAddingDesigner(false)
   }
 
   async function handleRemoveDesigner(id: string) {
     if (removingDesignerId) return
     setRemovingDesignerId(id)
-
     await supabase.from('favorite_designers').delete().eq('id', id)
     setDesigners(prev => prev.filter(d => d.id !== id))
     setRemovingDesignerId(null)
   }
 
-  async function handleDelete(rowId: string) {
-    if (deletingId) return
+  // ── Derived state ───────────────────────────────────────────────────────────
 
-    // Re-check session in case it refreshed
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.replace('/login'); return }
+  const filteredPatterns =
+    selectedCollId === null           ? patterns :
+    selectedCollId === 'uncategorized'? patterns.filter(p => !p.collection_id) :
+                                        patterns.filter(p => p.collection_id === selectedCollId)
 
-    setDeletingId(rowId)
+  const uncategorizedCount = patterns.filter(p => !p.collection_id).length
 
-    const res = await fetch(`/api/patterns/saved/${rowId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-
-    if (res.ok) {
-      setPatterns(prev => prev.filter(p => p.id !== rowId))
-    } else {
-      console.error('[Library] delete failed:', res.status)
-    }
-
-    setDeletingId(null)
+  function collectionCount(id: string) {
+    return patterns.filter(p => p.collection_id === id).length
   }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ backgroundColor: '#242220', color: '#f5f0eb', minHeight: '100vh' }}>
@@ -195,7 +421,7 @@ export default function LibraryPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>My Library</h1>
@@ -213,266 +439,404 @@ export default function LibraryPage() {
           </Link>
         </div>
 
-        {/* ── Error ── */}
+        {/* Error */}
         {error && (
-          <div
-            className="rounded-xl px-6 py-4 text-center text-sm"
-            style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}
-          >
+          <div className="rounded-xl px-6 py-4 text-center text-sm"
+               style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}>
             {error}
           </div>
         )}
 
-        {/* ── Loading skeletons ── */}
+        {/* Loading */}
         {loading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
           </div>
         )}
 
-        {/* ── Empty state ── */}
-        {!loading && !error && patterns.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <svg
-              width="48" height="48" viewBox="0 0 24 24"
-              fill="none" stroke="#4a4440" strokeWidth="1.5"
-              strokeLinecap="round" strokeLinejoin="round"
-              className="mb-4"
-            >
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            <p className="text-lg font-medium" style={{ color: '#9a8e87' }}>No saved patterns yet</p>
-            <p className="mt-1 text-sm" style={{ color: '#5a504a' }}>
-              Hit the heart on any search result to save it here.
-            </p>
-            <Link
-              href="/search"
-              className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors"
-            >
-              Search patterns
-            </Link>
-          </div>
-        )}
-
-        {/* ── Favorite Designers ── */}
         {!loading && !error && (
-          <div
-            className="rounded-2xl p-6"
-            style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Favorite Designers</h2>
-                {designers.length > 0 && (
-                  <p className="mt-0.5 text-sm" style={{ color: '#7a6e67' }}>
-                    {designers.length} {designers.length === 1 ? 'designer' : 'designers'}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+
+            {/* ── Sidebar ── */}
+            <div className="w-full lg:w-52 lg:flex-shrink-0 lg:sticky lg:top-20">
+              <div className="rounded-2xl p-4" style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
+
+                {/* Collections heading + create button */}
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#7a6e67' }}>
+                    Collections
+                  </span>
+                  <button
+                    onClick={() => { setEditingColl(null); setShowCollForm(true) }}
+                    title="New collection"
+                    className="flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-[#3a3530]"
+                    style={{ color: '#9a8e87' }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* All Patterns */}
+                <SidebarItem
+                  label="All Patterns"
+                  count={patterns.length}
+                  active={selectedCollId === null}
+                  color="#9a8e87"
+                  onClick={() => setSelectedCollId(null)}
+                />
+
+                {/* Uncategorized */}
+                <SidebarItem
+                  label="Uncategorized"
+                  count={uncategorizedCount}
+                  active={selectedCollId === 'uncategorized'}
+                  color="#5a504a"
+                  onClick={() => setSelectedCollId('uncategorized')}
+                />
+
+                {/* User collections */}
+                {collections.length > 0 && (
+                  <div className="mt-1 border-t pt-1" style={{ borderColor: '#3a3530' }}>
+                    {collections.map(c => (
+                      <div key={c.id} className="group flex items-center">
+                        <SidebarItem
+                          label={c.name}
+                          count={collectionCount(c.id)}
+                          active={selectedCollId === c.id}
+                          color={c.color}
+                          onClick={() => setSelectedCollId(c.id)}
+                        />
+                        {/* Edit / Delete buttons on hover */}
+                        <div className="ml-1 hidden shrink-0 items-center gap-0.5 group-hover:flex">
+                          <button
+                            onClick={() => { setEditingColl(c); setShowCollForm(true) }}
+                            title="Edit"
+                            className="flex h-5 w-5 items-center justify-center rounded transition-colors hover:bg-[#3a3530]"
+                            style={{ color: '#7a6e67' }}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCollection(c.id)}
+                            disabled={deletingCollId === c.id}
+                            title="Delete"
+                            className="flex h-5 w-5 items-center justify-center rounded transition-colors hover:bg-[#3a3530] disabled:opacity-40"
+                            style={{ color: '#7a6e67' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                            onMouseLeave={e => (e.currentTarget.style.color = '#7a6e67')}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {collections.length === 0 && (
+                  <p className="mt-2 text-xs" style={{ color: '#5a504a' }}>
+                    Create a collection to organize your patterns.
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Add form */}
-            <form onSubmit={handleAddDesigner} className="mb-5 flex gap-2">
-              <input
-                type="text"
-                value={newDesigner}
-                onChange={e => { setNewDesigner(e.target.value); setDesignerError(null) }}
-                placeholder="Designer name…"
-                className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{
-                  backgroundColor: '#38342f',
-                  border: `1px solid ${designerError ? '#e05050' : '#4a4440'}`,
-                  color: '#f5f0eb',
-                }}
-                onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
-                onBlur={e   => (e.currentTarget.style.borderColor = designerError ? '#e05050' : '#4a4440')}
-              />
-              <button
-                type="submit"
-                disabled={addingDesigner || !newDesigner.trim()}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-40"
-                style={{ backgroundColor: '#C06B45' }}
-              >
-                {addingDesigner ? 'Adding…' : 'Add'}
-              </button>
-            </form>
-            {designerError && (
-              <p className="mb-4 text-xs" style={{ color: '#e0a090' }}>{designerError}</p>
-            )}
+            {/* ── Main content ── */}
+            <div className="flex-1 min-w-0 space-y-6">
 
-            {/* Designer cards */}
-            {designers.length === 0 ? (
-              <p className="text-sm" style={{ color: '#5a504a' }}>
-                No favorite designers yet. Add one above.
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {designers.map(d => (
-                  <div
-                    key={d.id}
-                    className="flex gap-3 rounded-xl p-3"
+              {/* Favorite Designers */}
+              <div className="rounded-2xl p-6" style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Favorite Designers</h2>
+                    {designers.length > 0 && (
+                      <p className="mt-0.5 text-sm" style={{ color: '#7a6e67' }}>
+                        {designers.length} {designers.length === 1 ? 'designer' : 'designers'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <form onSubmit={handleAddDesigner} className="mb-5 flex gap-2">
+                  <input
+                    type="text"
+                    value={newDesigner}
+                    onChange={e => { setNewDesigner(e.target.value); setDesignerError(null) }}
+                    placeholder="Designer name…"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none"
                     style={{
                       backgroundColor: '#38342f',
-                      border: '1px solid #4a4440',
-                      opacity: removingDesignerId === d.id ? 0.4 : 1,
-                      transition: 'opacity 150ms',
+                      border: `1px solid ${designerError ? '#e05050' : '#4a4440'}`,
+                      color: '#f5f0eb',
                     }}
+                    onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+                    onBlur={e   => (e.currentTarget.style.borderColor = designerError ? '#e05050' : '#4a4440')}
+                  />
+                  <button
+                    type="submit"
+                    disabled={addingDesigner || !newDesigner.trim()}
+                    className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                    style={{ backgroundColor: '#C06B45' }}
                   >
-                    {/* Photo */}
-                    <div
-                      className="flex-shrink-0 rounded-full overflow-hidden"
-                      style={{ width: 48, height: 48, backgroundColor: '#2e2b28' }}
-                    >
-                      {d.designer_photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={d.designer_photo_url}
-                          alt={d.designer_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full flex items-center justify-center text-sm font-bold"
-                          style={{ color: '#C06B45' }}
-                        >
-                          {d.designer_name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                    {addingDesigner ? 'Adding…' : 'Add'}
+                  </button>
+                </form>
+                {designerError && (
+                  <p className="mb-4 text-xs" style={{ color: '#e0a090' }}>{designerError}</p>
+                )}
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <Link
-                          href={`/search?q=${encodeURIComponent(d.designer_name)}`}
-                          className="text-sm font-semibold leading-snug truncate transition-colors hover:text-white"
-                          style={{ color: '#f5f0eb' }}
-                        >
-                          {d.designer_name}
-                        </Link>
-                        <button
-                          onClick={() => handleRemoveDesigner(d.id)}
-                          disabled={!!removingDesignerId}
-                          aria-label={`Remove ${d.designer_name}`}
-                          className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full transition-colors"
-                          style={{ color: '#5a504a' }}
-                          onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
-                          onMouseLeave={e => (e.currentTarget.style.color = '#5a504a')}
-                        >
-                          <svg width="8" height="8" viewBox="0 0 12 12" fill="none"
-                               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M2 2l8 8M10 2l-8 8" />
-                          </svg>
-                        </button>
-                      </div>
-                      {d.follower_count != null && (
-                        <p className="text-xs mt-0.5" style={{ color: '#7a6e67' }}>
-                          {d.follower_count.toLocaleString()} followers
-                        </p>
-                      )}
-                      {d.designer_bio && (
-                        <p
-                          className="text-xs mt-1 leading-relaxed line-clamp-2"
-                          style={{ color: '#9a8e87' }}
-                        >
-                          {d.designer_bio}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Grid ── */}
-        {!loading && !error && patterns.length > 0 && (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {patterns.map(pattern => {
-                const isDeleting = deletingId === pattern.id
-                return (
-                  <div
-                    key={pattern.id}
-                    className="flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
-                    style={{
-                      backgroundColor: '#2e2b28',
-                      border: '1px solid #3a3530',
-                      opacity: isDeleting ? 0.5 : 1,
-                      transition: 'opacity 200ms, transform 150ms',
-                    }}
-                  >
-                    {/* Image / placeholder */}
-                    <div className="relative w-full overflow-hidden" style={{ height: '180px' }}>
-                      {pattern.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={pattern.photo_url}
-                          alt={pattern.pattern_name}
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
-                            opacity: 0.7,
-                          }}
-                        />
-                      )}
-
-                      {/* Delete button */}
-                      <button
-                        onClick={() => handleDelete(pattern.id)}
-                        disabled={!!deletingId}
-                        aria-label="Remove from library"
-                        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150"
+                {designers.length === 0 ? (
+                  <p className="text-sm" style={{ color: '#5a504a' }}>No favorite designers yet. Add one above.</p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {designers.map(d => (
+                      <div
+                        key={d.id}
+                        className="flex gap-3 rounded-xl p-3"
                         style={{
-                          backgroundColor: isDeleting ? '#8b4a2a' : 'rgba(26,23,20,0.70)',
-                          border: '1px solid rgba(255,255,255,0.18)',
-                          backdropFilter: 'blur(6px)',
-                          cursor: deletingId ? 'wait' : 'pointer',
+                          backgroundColor: '#38342f',
+                          border: '1px solid #4a4440',
+                          opacity: removingDesignerId === d.id ? 0.4 : 1,
+                          transition: 'opacity 150ms',
                         }}
                       >
-                        {isDeleting ? <SpinnerIcon /> : <TrashIcon />}
-                      </button>
-                    </div>
-
-                    {/* Card body */}
-                    <div className="flex flex-1 flex-col p-5 gap-3">
-                      <div>
-                        <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
-                          {pattern.pattern_name}
-                        </h2>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
-                          {pattern.designer_name && (
-                            <span>by <DesignerPopover name={pattern.designer_name} /></span>
+                        <div className="flex-shrink-0 rounded-full overflow-hidden"
+                             style={{ width: 48, height: 48, backgroundColor: '#2e2b28' }}>
+                          {d.designer_photo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={d.designer_photo_url} alt={d.designer_name}
+                                 className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-sm font-bold"
+                                 style={{ color: '#C06B45' }}>
+                              {d.designer_name.charAt(0).toUpperCase()}
+                            </div>
                           )}
-                          {pattern.designer_name && <span aria-hidden="true">·</span>}
-                          <RavelryCardCredit />
-                        </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-1">
+                            <Link
+                              href={`/search?q=${encodeURIComponent(d.designer_name)}`}
+                              className="text-sm font-semibold leading-snug truncate transition-colors hover:text-white"
+                              style={{ color: '#f5f0eb' }}
+                            >
+                              {d.designer_name}
+                            </Link>
+                            <button
+                              onClick={() => handleRemoveDesigner(d.id)}
+                              disabled={!!removingDesignerId}
+                              aria-label={`Remove ${d.designer_name}`}
+                              className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full transition-colors"
+                              style={{ color: '#5a504a' }}
+                              onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                              onMouseLeave={e => (e.currentTarget.style.color = '#5a504a')}
+                            >
+                              <svg width="8" height="8" viewBox="0 0 12 12" fill="none"
+                                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <path d="M2 2l8 8M10 2l-8 8" />
+                              </svg>
+                            </button>
+                          </div>
+                          {d.follower_count != null && (
+                            <p className="text-xs mt-0.5" style={{ color: '#7a6e67' }}>
+                              {d.follower_count.toLocaleString()} followers
+                            </p>
+                          )}
+                          {d.designer_bio && (
+                            <p className="text-xs mt-1 leading-relaxed line-clamp-2" style={{ color: '#9a8e87' }}>
+                              {d.designer_bio}
+                            </p>
+                          )}
+                        </div>
                       </div>
-
-                      <div className="mt-auto pt-2">
-                        <Link
-                          href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ravelry-link block rounded-lg py-2 text-center text-sm font-semibold transition-colors text-white"
-                        >
-                          View on Ravelry →
-                        </Link>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                )
-              })}
+                )}
+              </div>
+
+              {/* Patterns section heading */}
+              {patterns.length > 0 && (
+                <div className="flex items-baseline justify-between">
+                  <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>
+                    {selectedCollId === null
+                      ? 'All Patterns'
+                      : selectedCollId === 'uncategorized'
+                        ? 'Uncategorized'
+                        : (collections.find(c => c.id === selectedCollId)?.name ?? 'Patterns')}
+                  </h2>
+                  <span className="text-sm" style={{ color: '#7a6e67' }}>
+                    {filteredPatterns.length} {filteredPatterns.length === 1 ? 'pattern' : 'patterns'}
+                  </span>
+                </div>
+              )}
+
+              {/* Empty library */}
+              {patterns.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4a4440"
+                       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <p className="text-lg font-medium" style={{ color: '#9a8e87' }}>No saved patterns yet</p>
+                  <p className="mt-1 text-sm" style={{ color: '#5a504a' }}>
+                    Hit the heart on any search result to save it here.
+                  </p>
+                  <Link href="/search"
+                        className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                    Search patterns
+                  </Link>
+                </div>
+              )}
+
+              {/* Empty collection filter state */}
+              {patterns.length > 0 && filteredPatterns.length === 0 && (
+                <div className="py-16 text-center">
+                  <p className="text-sm" style={{ color: '#5a504a' }}>
+                    No patterns in this collection yet.
+                    {selectedCollId !== 'uncategorized' && ' Move patterns here using the folder icon on each card.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Patterns grid */}
+              {filteredPatterns.length > 0 && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredPatterns.map(pattern => {
+                      const isDeleting = deletingId === pattern.id
+                      return (
+                        <div
+                          key={pattern.id}
+                          className="flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
+                          style={{
+                            backgroundColor: '#2e2b28',
+                            border: '1px solid #3a3530',
+                            opacity: isDeleting ? 0.5 : 1,
+                            transition: 'opacity 200ms, transform 150ms',
+                          }}
+                        >
+                          {/* Image */}
+                          <div className="relative w-full overflow-hidden" style={{ height: '180px' }}>
+                            {pattern.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={pattern.photo_url}
+                                alt={pattern.pattern_name}
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="absolute inset-0" style={{
+                                background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                                opacity: 0.7,
+                              }} />
+                            )}
+
+                            {/* Delete button */}
+                            <button
+                              onClick={() => handleDelete(pattern.id)}
+                              disabled={!!deletingId}
+                              aria-label="Remove from library"
+                              className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150"
+                              style={{
+                                backgroundColor: isDeleting ? '#8b4a2a' : 'rgba(26,23,20,0.70)',
+                                border: '1px solid rgba(255,255,255,0.18)',
+                                backdropFilter: 'blur(6px)',
+                                cursor: deletingId ? 'wait' : 'pointer',
+                              }}
+                            >
+                              {isDeleting ? <SpinnerIcon /> : <TrashIcon />}
+                            </button>
+                          </div>
+
+                          {/* Card body */}
+                          <div className="flex flex-1 flex-col p-5 gap-3">
+                            <div>
+                              <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
+                                {pattern.pattern_name}
+                              </h2>
+                              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
+                                {pattern.designer_name && (
+                                  <span>by <DesignerPopover name={pattern.designer_name} /></span>
+                                )}
+                                {pattern.designer_name && <span aria-hidden="true">·</span>}
+                                <RavelryCardCredit />
+                              </p>
+                            </div>
+
+                            <div className="mt-auto flex items-center gap-2 pt-2">
+                              <Link
+                                href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ravelry-link flex-1 block rounded-lg py-2 text-center text-sm font-semibold transition-colors text-white"
+                              >
+                                View on Ravelry →
+                              </Link>
+                              <CollectionPicker
+                                pattern={pattern}
+                                collections={collections}
+                                onAssign={handleAssignCollection}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <RavelryFooter />
+                </>
+              )}
             </div>
-            <RavelryFooter />
-          </>
+          </div>
         )}
       </div>
+
+      {/* Collection form modal */}
+      {showCollForm && (
+        <CollectionForm
+          initial={editingColl ?? undefined}
+          onSave={editingColl ? handleEditCollection : handleCreateCollection}
+          onClose={() => { setShowCollForm(false); setEditingColl(null) }}
+        />
+      )}
     </div>
+  )
+}
+
+// ── Sidebar item helper ───────────────────────────────────────────────────────
+
+function SidebarItem({
+  label, count, active, color, onClick,
+}: {
+  label: string
+  count: number
+  active: boolean
+  color: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors"
+      style={{
+        backgroundColor: active ? '#3a3530' : 'transparent',
+        color: active ? '#f5f0eb' : '#9a8e87',
+      }}
+    >
+      <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      <span className="flex-1 truncate">{label}</span>
+      <span className="text-xs tabular-nums" style={{ color: active ? '#c4b8ae' : '#5a504a' }}>
+        {count}
+      </span>
+    </button>
   )
 }
