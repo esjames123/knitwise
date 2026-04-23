@@ -48,10 +48,71 @@ function HighlightedText({ text, term }: { text: string; term: string }) {
   )
 }
 
+// ── Query parser ───────────────────────────────────────────────────────────────
+
+// Maps user-typed keywords to canonical Ravelry yarn_weight values
+const WEIGHT_KEYWORDS: { regex: RegExp; canonical: string }[] = [
+  { regex: /\b(lace)\b/i,                                 canonical: 'Lace'        },
+  { regex: /\b(cobweb)\b/i,                               canonical: 'Cobweb'      },
+  { regex: /\b(thread)\b/i,                               canonical: 'Thread'      },
+  { regex: /\b(fingering|sock|4-?ply)\b/i,               canonical: 'Fingering'   },
+  { regex: /\b(sport|5-?ply)\b/i,                        canonical: 'Sport'       },
+  { regex: /\b(dk|double\s*knit|8-?ply)\b/i,            canonical: 'DK'          },
+  { regex: /\b(worsted|10-?ply)\b/i,                     canonical: 'Worsted'     },
+  { regex: /\b(aran)\b/i,                                 canonical: 'Aran'        },
+  { regex: /\b(bulky|chunky|12-?ply)\b/i,               canonical: 'Bulky'       },
+  { regex: /\b(super[-\s]?bulky|14-?ply)\b/i,           canonical: 'Super Bulky' },
+  { regex: /\b(jumbo)\b/i,                                canonical: 'Jumbo'       },
+]
+
+type ParsedQuery = {
+  yarnName: string       // remaining text → notes search
+  yardage: number | null // extracted from "200 yards / 200 yds"
+  weight: string | null  // canonical weight name
+}
+
+function parseQuery(raw: string): ParsedQuery {
+  let s = raw.trim()
+  let yardage: number | null = null
+  let weight: string | null = null
+
+  // Extract yardage: "200 yards", "200 yds", "200yd", "200y"
+  s = s.replace(/\b(\d+)\s*(?:yards?|yds?|y)\b/gi, (_, n) => {
+    yardage = parseInt(n, 10)
+    return ' '
+  })
+
+  // Extract weight keyword (first match wins)
+  for (const { regex, canonical } of WEIGHT_KEYWORDS) {
+    if (regex.test(s)) {
+      weight = canonical
+      s = s.replace(regex, ' ')
+      break
+    }
+  }
+
+  return { yarnName: s.replace(/\s+/g, ' ').trim(), yardage, weight }
+}
+
+// Case-insensitive substring match between stored value and canonical keyword
+function weightMatches(stored: string | null, canonical: string): boolean {
+  if (!stored) return false
+  return stored.toLowerCase().includes(canonical.toLowerCase())
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const YARDAGE_PRESETS = [
+  { label: 'Up to 200 yds',  max: 200  },
+  { label: 'Up to 400 yds',  max: 400  },
+  { label: 'Up to 800 yds',  max: 800  },
+  { label: 'Up to 1500 yds', max: 1500 },
+] as const
+
 // ── Result card ────────────────────────────────────────────────────────────────
 
-function ResultCard({ pattern, yarn }: { pattern: StashPattern; yarn: string }) {
-  const preview = relevantLines(pattern.notes!, yarn)
+function ResultCard({ pattern, yarnName }: { pattern: StashPattern; yarnName: string }) {
+  const preview = yarnName && pattern.notes ? relevantLines(pattern.notes, yarnName) : null
   return (
     <div className="flex gap-3 rounded-xl p-3"
          style={{ backgroundColor: '#38342f', border: '1px solid #4a4440' }}>
@@ -95,22 +156,13 @@ function ResultCard({ pattern, yarn }: { pattern: StashPattern; yarn: string }) 
         {preview && (
           <p className="text-xs leading-relaxed whitespace-pre-line line-clamp-3"
              style={{ color: '#9a8e87' }}>
-            <HighlightedText text={preview} term={yarn} />
+            <HighlightedText text={preview} term={yarnName} />
           </p>
         )}
       </div>
     </div>
   )
 }
-
-// ── Constants ──────────────────────────────────────────────────────────────────
-
-const YARDAGE_PRESETS = [
-  { label: 'Up to 200 yds',  max: 200  },
-  { label: 'Up to 400 yds',  max: 400  },
-  { label: 'Up to 800 yds',  max: 800  },
-  { label: 'Up to 1500 yds', max: 1500 },
-] as const
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -121,35 +173,53 @@ export function StashBuster({
   patterns: StashPattern[]
   collections: StashCollection[]
 }) {
-  const [yarn, setYarn]               = useState('')
-  const [selectedColls, setSelectedColls]   = useState<Set<string>>(new Set())
-  const [maxYardage, setMaxYardage]         = useState<number | null>(null)
+  const [input, setInput]                     = useState('')
+  const [selectedColls, setSelectedColls]     = useState<Set<string>>(new Set())
+  const [maxYardage, setMaxYardage]           = useState<number | null>(null)
   const [selectedWeights, setSelectedWeights] = useState<Set<string>>(new Set())
 
-  const yarnQ = yarn.trim()
-  const patternsWithNotes = patterns.filter(p => p.notes).length
+  const parsed = useMemo(() => parseQuery(input), [input])
 
-  // Note-text matches (yarn name search)
-  const noteMatches = useMemo(() => {
-    if (!yarnQ) return []
-    const re = new RegExp(escapeRegex(yarnQ), 'i')
-    return patterns.filter(p => p.notes && re.test(p.notes))
-  }, [yarnQ, patterns])
+  // Sidebar manual yardage overrides the parsed value; parsed is the auto fallback
+  const effectiveMaxYardage = maxYardage ?? parsed.yardage
 
-  // Weights available in this result set (for the weight filter)
-  const availableWeights = useMemo(() => {
+  // All unique weights present in the library (not just filtered results)
+  const allWeights = useMemo(() => {
     const ws = new Set<string>()
-    noteMatches.forEach(p => { if (p.yarn_weight) ws.add(p.yarn_weight) })
+    patterns.forEach(p => { if (p.yarn_weight) ws.add(p.yarn_weight) })
     return [...ws].sort()
-  }, [noteMatches])
+  }, [patterns])
 
-  // Apply secondary filters
-  const results = useMemo(() => noteMatches.filter(p => {
-    if (selectedColls.size > 0 && !selectedColls.has(p.collection_id ?? '')) return false
-    if (maxYardage != null && p.yardage != null && p.yardage > maxYardage) return false
-    if (selectedWeights.size > 0 && (!p.yarn_weight || !selectedWeights.has(p.yarn_weight))) return false
-    return true
-  }), [noteMatches, selectedColls, maxYardage, selectedWeights])
+  const hasInput        = input.trim().length > 0
+  const hasManualFilter = selectedColls.size > 0 || maxYardage != null || selectedWeights.size > 0
+  const showResults     = hasInput || hasManualFilter
+  const showSidebar     = showResults && (allWeights.length > 0 || collections.length > 0)
+
+  const results = useMemo(() => {
+    if (!showResults) return []
+    return patterns.filter(p => {
+      // Yardage: filter on actual column (patterns with no yardage data pass through)
+      if (effectiveMaxYardage != null && p.yardage != null && p.yardage > effectiveMaxYardage) return false
+
+      // Yarn weight: sidebar checkboxes take priority, else use parsed keyword
+      if (selectedWeights.size > 0) {
+        if (!p.yarn_weight || !selectedWeights.has(p.yarn_weight)) return false
+      } else if (parsed.weight) {
+        if (!weightMatches(p.yarn_weight, parsed.weight)) return false
+      }
+
+      // Collection filter
+      if (selectedColls.size > 0 && !selectedColls.has(p.collection_id ?? '')) return false
+
+      // Notes search — only when input has a yarn-name portion after stripping yardage/weight
+      if (parsed.yarnName) {
+        const re = new RegExp(escapeRegex(parsed.yarnName), 'i')
+        if (!p.notes || !re.test(p.notes)) return false
+      }
+
+      return true
+    })
+  }, [patterns, effectiveMaxYardage, selectedWeights, parsed, selectedColls, showResults])
 
   function toggleColl(id: string) {
     setSelectedColls(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -157,14 +227,21 @@ export function StashBuster({
   function toggleWeight(w: string) {
     setSelectedWeights(prev => { const n = new Set(prev); n.has(w) ? n.delete(w) : n.add(w); return n })
   }
-  function handleYarnChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setYarn(e.target.value)
-    if (!e.target.value.trim()) { setSelectedColls(new Set()); setMaxYardage(null); setSelectedWeights(new Set()) }
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInput(e.target.value)
+    if (!e.target.value.trim()) {
+      setSelectedColls(new Set())
+      setMaxYardage(null)
+      setSelectedWeights(new Set())
+    }
   }
   function clearFilters() { setSelectedColls(new Set()); setMaxYardage(null); setSelectedWeights(new Set()) }
 
-  const hasFilters  = selectedColls.size > 0 || maxYardage != null || selectedWeights.size > 0
-  const showSidebar = !!yarnQ && (collections.length > 0 || availableWeights.length > 0)
+  // Chips show what was auto-detected from the input text
+  const parsedChips: string[] = []
+  if (parsed.yardage) parsedChips.push(`≤ ${parsed.yardage} yds`)
+  if (parsed.weight)  parsedChips.push(parsed.weight)
+  if (parsed.yarnName) parsedChips.push(`notes: "${parsed.yarnName}"`)
 
   return (
     <div className="rounded-2xl p-6" style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
@@ -175,42 +252,47 @@ export function StashBuster({
         <div>
           <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Stash Busting Tool</h2>
           <p className="mt-0.5 text-sm" style={{ color: '#7a6e67' }}>
-            {patternsWithNotes > 0
-              ? `Find patterns for yarn you already have · ${patternsWithNotes} pattern${patternsWithNotes === 1 ? '' : 's'} with notes`
-              : 'Search your pattern notes to find projects for yarn you already have'}
+            Describe your yarn to find matching patterns — e.g. "200 yards worsted" or "400 yds DK Malabrigo"
           </p>
         </div>
       </div>
 
-      {/* Yarn input */}
+      {/* Search input */}
       <input
-        type="text" value={yarn} onChange={handleYarnChange}
-        placeholder="What yarn do you have? e.g. Merino, Cotton, Malabrigo Rios…"
+        type="text" value={input} onChange={handleInputChange}
+        placeholder="e.g. 200 yards worsted, fingering Malabrigo, 400 yds DK…"
         className="w-full rounded-xl px-4 py-3 text-sm outline-none"
         style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }}
         onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
         onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
       />
 
-      {!yarnQ && patternsWithNotes === 0 && (
-        <p className="mt-3 text-xs" style={{ color: '#5a504a' }}>
-          Add notes to patterns using the ✏️ icon on each card — include the yarn you plan to use, then search here.
-        </p>
+      {/* Auto-detected filter chips */}
+      {parsedChips.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {parsedChips.map(chip => (
+            <span key={chip}
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                  style={{ backgroundColor: '#3d2a1e', border: '1px solid #C06B45', color: '#e8c4b0' }}>
+              {chip}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* Results area */}
-      {yarnQ && (
+      {showResults && (
         <div className="mt-5">
 
-          {/* Count + clear */}
+          {/* Count + clear manual filters */}
           <div className="mb-4 flex items-center justify-between gap-2">
             <p className="text-sm font-semibold"
                style={{ color: results.length > 0 ? '#C06B45' : '#7a6e67' }}>
               {results.length === 0
-                ? `No patterns mention "${yarnQ}"${hasFilters ? ' with these filters' : ''} in their notes`
+                ? 'No patterns match — try different yardage, weight, or yarn name'
                 : `🎉 ${results.length} pattern${results.length === 1 ? '' : 's'} match your stash!`}
             </p>
-            {hasFilters && (
+            {hasManualFilter && (
               <button onClick={clearFilters}
                       className="flex-shrink-0 text-xs transition-colors hover:text-white"
                       style={{ color: '#5a504a' }}>
@@ -243,26 +325,44 @@ export function StashBuster({
                         <span className="text-sm" style={{ color: '#c4b8ae' }}>{p.label}</span>
                       </label>
                     ))}
+                    {parsed.yardage != null && maxYardage == null && (
+                      <p className="text-xs italic" style={{ color: '#5a504a' }}>
+                        Auto: ≤ {parsed.yardage} yds
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Yarn weight */}
-                {availableWeights.length > 0 && (
+                {allWeights.length > 0 && (
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#7a6e67' }}>
                       Yarn weight
                     </p>
                     <div className="space-y-1.5">
-                      {availableWeights.map(w => (
-                        <label key={w} className="flex cursor-pointer items-center gap-2">
-                          <input
-                            type="checkbox" checked={selectedWeights.has(w)}
-                            onChange={() => toggleWeight(w)}
-                            style={{ accentColor: '#C06B45', width: 13, height: 13 }}
-                          />
-                          <span className="text-sm" style={{ color: '#c4b8ae' }}>{w}</span>
-                        </label>
-                      ))}
+                      {allWeights.map(w => {
+                        const autoActive = !selectedWeights.size && !!parsed.weight && weightMatches(w, parsed.weight)
+                        return (
+                          <label key={w} className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedWeights.has(w) || autoActive}
+                              onChange={() => toggleWeight(w)}
+                              style={{ accentColor: '#C06B45', width: 13, height: 13 }}
+                            />
+                            <span className="text-sm" style={{
+                              color: selectedWeights.has(w) || autoActive ? '#f5f0eb' : '#c4b8ae',
+                            }}>
+                              {w}
+                            </span>
+                          </label>
+                        )
+                      })}
+                      {parsed.weight && selectedWeights.size === 0 && (
+                        <p className="text-xs italic" style={{ color: '#5a504a' }}>
+                          Auto: {parsed.weight}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -295,17 +395,15 @@ export function StashBuster({
               </div>
             )}
 
-            {/* Results */}
+            {/* Results list */}
             <div className="min-w-0 flex-1 space-y-3">
-              {results.map(p => <ResultCard key={p.id} pattern={p} yarn={yarnQ} />)}
+              {results.map(p => <ResultCard key={p.id} pattern={p} yarnName={parsed.yarnName} />)}
               {results.length === 0 && (
                 <div className="py-8 text-center">
                   <p className="text-sm" style={{ color: '#5a504a' }}>
-                    {patternsWithNotes === 0
-                      ? 'Add notes to your patterns with the ✏️ icon and include the yarn you plan to use!'
-                      : hasFilters
-                        ? 'No patterns match all your filters — try relaxing them.'
-                        : 'Try a different yarn name, or add more notes to your patterns.'}
+                    {hasManualFilter && !hasInput
+                      ? 'No patterns match these filters — try relaxing them.'
+                      : 'Try adjusting the yardage, weight, or yarn name.'}
                   </p>
                 </div>
               )}
