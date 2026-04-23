@@ -36,26 +36,6 @@ export async function PATCH(
     return Response.json({ error: 'Collection not found' }, { status: 404 })
   }
 
-  // Debug: verify the pattern row before updating
-  const { data: existing, error: selectErr } = await auth.client
-    .from('saved_patterns')
-    .select('id, user_id, collection_id')
-    .eq('id', pattern_id)
-    .maybeSingle()
-
-  console.log('[PATCH collections/patterns] pre-update SELECT — found:', !!existing,
-    '| row user_id:', existing?.user_id ?? 'n/a',
-    '| auth user_id:', auth.user.id,
-    '| match:', existing?.user_id === auth.user.id,
-    '| selectErr:', selectErr?.message ?? 'none')
-
-  if (!existing) {
-    return Response.json({
-      error: `Pattern ${pattern_id} not found in saved_patterns (user ${auth.user.id}) — select returned nothing`,
-      selectErr: selectErr?.message,
-    }, { status: 404 })
-  }
-
   const { data, error } = await auth.client
     .from('saved_patterns')
     .update({ collection_id: collectionId })
@@ -64,18 +44,14 @@ export async function PATCH(
     .select()
 
   if (error) {
-    console.error('[PATCH collections/patterns] DB update error — code:', error.code, 'msg:', error.message, 'details:', error.details)
+    console.error('[PATCH collections/patterns] DB error:', error.code, error.message)
     return Response.json({ error: error.message, code: error.code }, { status: 500 })
   }
   if (!data || data.length === 0) {
-    console.error('[PATCH collections/patterns] 0 rows updated despite row existing — user_id mismatch or RLS block')
-    return Response.json({
-      error: 'Update matched 0 rows — RLS may be blocking (pattern user_id vs auth user_id mismatch)',
-      patternUserId: existing.user_id,
-      authUserId: auth.user.id,
-    }, { status: 403 })
+    console.error('[PATCH collections/patterns] 0 rows — missing UPDATE RLS policy on saved_patterns?')
+    return Response.json({ error: 'Pattern not found' }, { status: 404 })
   }
 
-  console.log('[PATCH collections/patterns] Success, collection_id now:', data[0].collection_id)
+  console.log('[PATCH collections/patterns] Success')
   return Response.json(data[0])
 }
