@@ -10,6 +10,8 @@ type Props = {
   designerName: string | null
   permalink: string
   photoUrl: string | null
+  yardageRequired?: number | null
+  yarnWeight?: string | null
 }
 
 type Toast = 'saved' | 'removed' | 'error'
@@ -37,6 +39,7 @@ const TOAST_LABELS: Record<Toast, string> = {
 
 export default function SaveButton({
   patternId, patternName, designerName, permalink, photoUrl,
+  yardageRequired, yarnWeight,
 }: Props) {
   const router = useRouter()
   const [saved, setSaved]           = useState<boolean | null>(null) // null = loading
@@ -109,6 +112,8 @@ export default function SaveButton({
           designer_name: designerName,
           permalink,
           photo_url:     photoUrl,
+          yardage:       yardageRequired ?? null,
+          yarn_weight:   yarnWeight ?? null,
         }),
       })
       if (res.ok) {

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { pattern_id, pattern_name, designer_name, permalink, photo_url } =
+  const { pattern_id, pattern_name, designer_name, permalink, photo_url, yardage, yarn_weight } =
     body as Record<string, unknown>
 
   if (!pattern_id || !pattern_name || !permalink) {
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
       designer_name: designer_name != null ? String(designer_name) : null,
       permalink:     String(permalink),
       photo_url:     photo_url != null ? String(photo_url) : null,
+      yardage:       yardage != null && Number.isFinite(Number(yardage)) ? Number(yardage) : null,
+      yarn_weight:   yarn_weight != null ? String(yarn_weight) : null,
     })
     .select('id')
     .single()

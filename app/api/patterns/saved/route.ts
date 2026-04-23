@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await auth.client
     .from('saved_patterns')
-    .select('id, pattern_id, pattern_name, designer_name, permalink, photo_url, collection_id, notes, updated_at, created_at')
+    .select('id, pattern_id, pattern_name, designer_name, permalink, photo_url, collection_id, notes, yardage, yarn_weight, updated_at, created_at')
     .eq('user_id', auth.user.id)
     .order('created_at', { ascending: false })
 

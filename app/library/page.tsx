@@ -21,6 +21,8 @@ type SavedPattern = {
   photo_url: string | null
   collection_id: string | null
   notes: string | null
+  yardage: number | null
+  yarn_weight: string | null
   updated_at: string | null
   created_at: string
 }
@@ -865,6 +867,13 @@ export default function LibraryPage() {
                                 {pattern.designer_name && <span aria-hidden="true">·</span>}
                                 <RavelryCardCredit />
                               </p>
+                              {(pattern.yarn_weight || pattern.yardage) && (
+                                <p className="mt-1 flex flex-wrap gap-x-2 text-xs" style={{ color: '#7a6e67' }}>
+                                  {pattern.yarn_weight && <span>{pattern.yarn_weight}</span>}
+                                  {pattern.yarn_weight && pattern.yardage && <span aria-hidden="true">·</span>}
+                                  {pattern.yardage && <span>~{pattern.yardage.toLocaleString()} yds</span>}
+                                </p>
+                              )}
                             </div>
 
                             <div className="mt-auto flex items-center gap-2 pt-2">

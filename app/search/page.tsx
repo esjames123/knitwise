@@ -16,6 +16,8 @@ type RavelryPattern = {
   designer: { name: string } | null
   difficulty_average: number | null
   yarn_weight_description: string | null
+  min_yardage_required: number | null
+  max_yardage_required: number | null
   free: boolean
   first_photo: {
     square_url: string
@@ -364,6 +366,8 @@ export default async function SearchPage({
                                 designerName={pattern.designer?.name ?? null}
                                 permalink={pattern.permalink}
                                 photoUrl={pattern.first_photo?.medium_url ?? null}
+                                yardageRequired={pattern.min_yardage_required}
+                                yarnWeight={pattern.yarn_weight_description}
                               />
                             </div>
 
@@ -391,6 +395,14 @@ export default async function SearchPage({
                                     style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#c4b8ae' }}
                                   >
                                     {pattern.yarn_weight_description}
+                                  </span>
+                                )}
+                                {pattern.min_yardage_required != null && (
+                                  <span
+                                    className="rounded-full px-2.5 py-0.5"
+                                    style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#9a8e87' }}
+                                  >
+                                    ~{pattern.min_yardage_required.toLocaleString()} yds
                                   </span>
                                 )}
                                 {pattern.free && (
