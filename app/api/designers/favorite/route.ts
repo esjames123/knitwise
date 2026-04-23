@@ -5,9 +5,9 @@ type RavelryDesigner = {
   id: number
   name: string
   permalink: string
-  bio: string | null
+  notes: string | null          // Ravelry uses "notes" for the bio field
   favorites_count: number | null
-  users?: { photo_url?: string; small_photo_url?: string }[]
+  users?: { photo_url?: string; small_photo_url?: string; tiny_photo_url?: string }[]
 }
 
 async function findDesignerPermalink(name: string): Promise<string | null> {
@@ -85,7 +85,9 @@ export async function POST(request: Request) {
   const profileData = await profileRes.json()
   console.log('[designers/favorite] Profile response keys:', Object.keys(profileData))
 
-  const designer: RavelryDesigner | undefined = profileData.designer ?? profileData.designers?.[0]
+  // Ravelry returns this endpoint under "pattern_author", not "designer"
+  const designer: RavelryDesigner | undefined =
+    profileData.pattern_author ?? profileData.designer ?? profileData.designers?.[0]
   if (!designer) {
     console.error('[designers/favorite] No designer in response. Full response:', JSON.stringify(profileData).slice(0, 500))
     return Response.json(
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
   const photoUrl =
     designer.users?.[0]?.photo_url ??
     designer.users?.[0]?.small_photo_url ??
+    designer.users?.[0]?.tiny_photo_url ??
     null
 
   // ── 3. Save to database ──
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
       user_id:             auth.user.id,
       ravelry_designer_id: designer.id,
       designer_name:       designer.name,
-      designer_bio:        designer.bio ?? null,
+      designer_bio:        designer.notes ?? null,
       designer_photo_url:  photoUrl,
       follower_count:      designer.favorites_count ?? null,
       ravelry_permalink:   designer.permalink,
