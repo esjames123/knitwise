@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabase'
 export function DesignerPopover({ name }: { name: string }) {
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
-  const [open, setOpen]     = useState(false)
-  const [status, setStatus] = useState<'idle' | 'adding' | 'added' | 'already' | 'error'>('idle')
+  const [open, setOpen]       = useState(false)
+  const [status, setStatus]   = useState<'idle' | 'adding' | 'added' | 'already' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -22,28 +23,46 @@ export function DesignerPopover({ name }: { name: string }) {
   async function handleAdd() {
     if (status === 'adding' || status === 'added') return
     setStatus('adding')
+    setErrorMsg('')
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
 
-    const res = await fetch('/api/designers/favorite', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ designer_name: name }),
-    })
+    let res: Response
+    try {
+      res = await fetch('/api/designers/favorite', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ designer_name: name }),
+      })
+    } catch (err) {
+      console.error('[DesignerPopover] fetch threw:', err)
+      setStatus('error')
+      setErrorMsg('Network error')
+      setTimeout(() => { setStatus('idle'); setOpen(false) }, 3000)
+      return
+    }
 
     if (res.ok) {
       setStatus('added')
+      setTimeout(() => { setStatus('idle'); setOpen(false) }, 1800)
     } else if (res.status === 409) {
       setStatus('already')
+      setTimeout(() => { setStatus('idle'); setOpen(false) }, 1800)
     } else {
+      let msg = `HTTP ${res.status}`
+      try {
+        const json = await res.json()
+        msg = json.error ?? json.detail ?? msg
+      } catch { /* ignore parse error */ }
+      console.error('[DesignerPopover] API error for', name, '—', res.status, msg)
       setStatus('error')
+      setErrorMsg(msg)
+      setTimeout(() => { setStatus('idle'); setOpen(false) }, 4000)
     }
-
-    setTimeout(() => { setStatus('idle'); setOpen(false) }, 1800)
   }
 
   function handleSearch() {
@@ -55,7 +74,7 @@ export function DesignerPopover({ name }: { name: string }) {
     status === 'adding' ? 'Adding…' :
     status === 'added'  ? '✓ Added!' :
     status === 'already'? 'Already saved' :
-    status === 'error'  ? 'Error — try again' :
+    status === 'error'  ? (errorMsg || 'Error — try again') :
     '♥ Add to Favorites'
 
   return (

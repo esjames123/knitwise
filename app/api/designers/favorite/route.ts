@@ -10,32 +10,43 @@ type RavelryDesigner = {
   users?: { photo_url?: string; small_photo_url?: string }[]
 }
 
-// Step 1: search patterns for this designer name and return the first matching
-// designer's permalink. More reliable than guessing the permalink from the name.
 async function findDesignerPermalink(name: string): Promise<string | null> {
-  const url = new URL('https://api.ravelry.com/patterns/search.json')
-  url.searchParams.set('query', name)
-  url.searchParams.set('page_size', '10')
-  url.searchParams.set('sort', 'best')
+  const params = new URLSearchParams({
+    query: name,
+    page_size: '10',
+    sort: 'best',
+  })
+  const url = `/patterns/search.json?${params.toString()}`
+  console.log('[designers/favorite] Ravelry pattern search:', url)
 
-  const res = await ravelryFetch(`/patterns/search.json?${url.searchParams.toString().replace(/^[^?]*\?/, '')}`)
-  if (!res.ok) return null
+  const res = await ravelryFetch(url)
+  console.log('[designers/favorite] Pattern search status:', res.status)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('[designers/favorite] Pattern search failed:', res.status, body.slice(0, 300))
+    return null
+  }
 
   const data = await res.json()
   const patterns: { designer?: { name: string; permalink: string } }[] = data.patterns ?? []
+  console.log('[designers/favorite] Patterns returned:', patterns.length)
 
-  // Prefer exact name match, fall back to first result that has a designer
-  const exact = patterns.find(
-    p => p.designer?.name?.toLowerCase() === name.toLowerCase()
-  )
+  const exact = patterns.find(p => p.designer?.name?.toLowerCase() === name.toLowerCase())
   const first = patterns.find(p => p.designer?.permalink)
-
-  return (exact ?? first)?.designer?.permalink ?? null
+  const result = (exact ?? first)?.designer?.permalink ?? null
+  console.log('[designers/favorite] Permalink found:', result, exact ? '(exact match)' : first ? '(first result)' : '(none)')
+  return result
 }
 
 export async function POST(request: Request) {
+  console.log('[designers/favorite] POST received')
+
   const auth = await getUserFromRequest(request)
-  if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!auth) {
+    console.error('[designers/favorite] Auth failed — no valid session token')
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  console.log('[designers/favorite] Auth OK, user:', auth.user.id)
 
   let body: unknown
   try { body = await request.json() }
@@ -47,16 +58,24 @@ export async function POST(request: Request) {
   }
 
   const name = designer_name.trim()
+  console.log('[designers/favorite] Looking up designer:', name)
 
-  // ── 1. Find the designer's Ravelry permalink ──
+  // ── 1. Find permalink ──
   const permalink = await findDesignerPermalink(name)
   if (!permalink) {
+    console.error('[designers/favorite] Could not find permalink for:', name)
     return Response.json({ error: `Could not find "${name}" on Ravelry.` }, { status: 404 })
   }
 
-  // ── 2. Fetch full designer profile ──
-  const profileRes = await ravelryFetch(`/designers/${encodeURIComponent(permalink)}.json`)
+  // ── 2. Fetch full profile ──
+  const profileUrl = `/designers/${encodeURIComponent(permalink)}.json`
+  console.log('[designers/favorite] Fetching profile:', profileUrl)
+  const profileRes = await ravelryFetch(profileUrl)
+  console.log('[designers/favorite] Profile fetch status:', profileRes.status)
+
   if (!profileRes.ok) {
+    const body = await profileRes.text().catch(() => '')
+    console.error('[designers/favorite] Profile fetch failed:', profileRes.status, body.slice(0, 300))
     return Response.json(
       { error: `Ravelry returned ${profileRes.status} for designer "${permalink}".` },
       { status: profileRes.status }
@@ -65,6 +84,7 @@ export async function POST(request: Request) {
 
   const profileData = await profileRes.json()
   const designer: RavelryDesigner = profileData.designer
+  console.log('[designers/favorite] Designer profile:', { id: designer.id, name: designer.name, permalink: designer.permalink })
 
   const photoUrl =
     designer.users?.[0]?.photo_url ??
@@ -72,6 +92,7 @@ export async function POST(request: Request) {
     null
 
   // ── 3. Save to database ──
+  console.log('[designers/favorite] Inserting into DB for user:', auth.user.id)
   const { data, error } = await auth.client
     .from('favorite_designers')
     .insert({
@@ -87,12 +108,13 @@ export async function POST(request: Request) {
     .single()
 
   if (error) {
+    console.error('[designers/favorite] DB insert error:', error.code, error.message, error.details)
     if (error.code === '23505') {
       return Response.json({ error: 'Already in your favorites.' }, { status: 409 })
     }
-    console.error('[POST /api/designers/favorite]', error.message)
-    return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ error: error.message, detail: error.details }, { status: 500 })
   }
 
+  console.log('[designers/favorite] Saved successfully, row id:', data?.id)
   return Response.json(data, { status: 201 })
 }
