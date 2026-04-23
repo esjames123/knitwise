@@ -1,6 +1,41 @@
 import type { NextRequest } from 'next/server'
 import { getUserFromRequest } from '@/lib/supabase-server'
 
+// Save freeform notes for a pattern
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await getUserFromRequest(request)
+  if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+
+  let body: unknown
+  try { body = await request.json() }
+  catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }) }
+
+  const { notes } = body as Record<string, unknown>
+
+  const { data, error } = await auth.client
+    .from('saved_patterns')
+    .update({
+      notes:      typeof notes === 'string' ? notes.trim() || null : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', auth.user.id)
+    .select()
+
+  if (error) {
+    console.error('[PUT patterns/saved/id]', error.code, error.message)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+  if (!data || data.length === 0) {
+    return Response.json({ error: 'Not found' }, { status: 404 })
+  }
+  return Response.json(data[0])
+}
+
 // Update a saved pattern's collection assignment
 export async function PATCH(
   request: NextRequest,

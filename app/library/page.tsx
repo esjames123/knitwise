@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { DesignerPopover } from '@/app/ui/designer-popover'
 import { CollectionForm } from '@/app/ui/collection-form'
 import type { CollectionPayload } from '@/app/ui/collection-form'
+import { NotesModal } from '@/app/ui/notes-modal'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 
 type SavedPattern = {
@@ -18,6 +19,8 @@ type SavedPattern = {
   permalink: string
   photo_url: string | null
   collection_id: string | null
+  notes: string | null
+  updated_at: string | null
   created_at: string
 }
 
@@ -217,6 +220,9 @@ export default function LibraryPage() {
   const [error, setError]           = useState<string | null>(null)
   const tokenRef                    = useRef<string | null>(null)
 
+  // Notes modal
+  const [notesPattern, setNotesPattern] = useState<SavedPattern | null>(null)
+
   // Collections
   const [collections, setCollections]           = useState<Collection[]>([])
   const [selectedCollId, setSelectedCollId]     = useState<string | 'uncategorized' | null>(null)
@@ -395,6 +401,31 @@ export default function LibraryPage() {
       console.error('[Library] assign failed:', res.status, errMsg)
       showToast(`Could not move pattern: ${errMsg}`, false)
     }
+  }
+
+  // ── Notes ───────────────────────────────────────────────────────────────────
+
+  async function handleSaveNotes(patternId: string, notes: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/patterns/saved/${patternId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ notes }),
+    })
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error ?? `HTTP ${res.status}`)
+    }
+
+    setPatterns(prev =>
+      prev.map(p => p.id === patternId ? { ...p, notes: notes.trim() || null } : p)
+    )
   }
 
   // ── Pattern delete ──────────────────────────────────────────────────────────
@@ -838,6 +869,21 @@ export default function LibraryPage() {
                               >
                                 View on Ravelry →
                               </Link>
+                              {/* Notes button */}
+                              <button
+                                onClick={() => setNotesPattern(pattern)}
+                                title={pattern.notes ? 'Edit notes' : 'Add notes'}
+                                className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#3a3530]"
+                                style={{ color: pattern.notes ? '#C4956A' : '#5a504a' }}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24"
+                                     fill={pattern.notes ? 'currentColor' : 'none'}
+                                     stroke="currentColor" strokeWidth="2"
+                                     strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </button>
                               <CollectionPicker
                                 pattern={pattern}
                                 collections={collections}
@@ -870,6 +916,16 @@ export default function LibraryPage() {
         >
           {toast.msg}
         </div>
+      )}
+
+      {/* Notes modal */}
+      {notesPattern && (
+        <NotesModal
+          patternName={notesPattern.pattern_name}
+          initialNotes={notesPattern.notes ?? ''}
+          onSave={notes => handleSaveNotes(notesPattern.id, notes)}
+          onClose={() => setNotesPattern(null)}
+        />
       )}
 
       {/* Collection form modal */}
