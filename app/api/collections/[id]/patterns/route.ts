@@ -6,8 +6,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await getUserFromRequest(request)
-  if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!auth) {
+    console.error('[PATCH collections/patterns] Unauthorized')
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const { id: collectionId } = await params
+  console.log('[PATCH collections/patterns] collectionId:', collectionId, 'user:', auth.user.id)
 
   let body: unknown
   try { body = await request.json() }
@@ -17,16 +21,20 @@ export async function PATCH(
   if (!pattern_id || typeof pattern_id !== 'string') {
     return Response.json({ error: 'pattern_id is required' }, { status: 400 })
   }
+  console.log('[PATCH collections/patterns] pattern_id:', pattern_id)
 
   // Verify the collection belongs to this user
-  const { data: collection } = await auth.client
+  const { data: collection, error: collErr } = await auth.client
     .from('collections')
     .select('id')
     .eq('id', collectionId)
     .eq('user_id', auth.user.id)
     .single()
 
-  if (!collection) return Response.json({ error: 'Collection not found' }, { status: 404 })
+  if (collErr || !collection) {
+    console.error('[PATCH collections/patterns] Collection not found:', collErr?.message)
+    return Response.json({ error: 'Collection not found' }, { status: 404 })
+  }
 
   const { data, error } = await auth.client
     .from('saved_patterns')
@@ -36,7 +44,15 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  if (!data) return Response.json({ error: 'Pattern not found' }, { status: 404 })
+  if (error) {
+    console.error('[PATCH collections/patterns] DB update error:', error.code, error.message)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+  if (!data) {
+    console.error('[PATCH collections/patterns] Pattern not found after update')
+    return Response.json({ error: 'Pattern not found' }, { status: 404 })
+  }
+
+  console.log('[PATCH collections/patterns] Success, collection_id now:', data.collection_id)
   return Response.json(data)
 }

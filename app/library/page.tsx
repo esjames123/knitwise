@@ -224,6 +224,16 @@ export default function LibraryPage() {
   const [editingColl, setEditingColl]           = useState<Collection | null>(null)
   const [deletingCollId, setDeletingCollId]     = useState<string | null>(null)
 
+  // Toast
+  const [toast, setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
+  const toastTimer              = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function showToast(msg: string, ok: boolean) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast({ msg, ok })
+    toastTimer.current = setTimeout(() => setToast(null), 3000)
+  }
+
   // Favorite designers
   const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
   const [newDesigner, setNewDesigner]               = useState('')
@@ -337,31 +347,53 @@ export default function LibraryPage() {
   // ── Pattern → collection assignment ────────────────────────────────────────
 
   async function handleAssignCollection(patternId: string, collectionId: string | null) {
+    const collName = collectionId
+      ? (collections.find(c => c.id === collectionId)?.name ?? collectionId)
+      : 'none'
+    console.log('[Library] assign pattern', patternId, '→ collection', collName)
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.replace('/login'); return }
 
-    const res = collectionId
-      ? await fetch(`/api/collections/${collectionId}/patterns`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ pattern_id: patternId }),
-        })
-      : await fetch(`/api/patterns/saved/${patternId}`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ collection_id: null }),
-        })
+    const url = collectionId
+      ? `/api/collections/${collectionId}/patterns`
+      : `/api/patterns/saved/${patternId}`
+    const body = collectionId
+      ? { pattern_id: patternId }
+      : { collection_id: null }
+
+    console.log('[Library] PATCH', url, body)
+
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+    } catch (err) {
+      console.error('[Library] assign network error:', err)
+      showToast('Network error — could not move pattern', false)
+      return
+    }
 
     if (res.ok) {
+      console.log('[Library] assign success')
       setPatterns(prev =>
         prev.map(p => p.id === patternId ? { ...p, collection_id: collectionId } : p)
       )
+      showToast(
+        collectionId ? `Moved to "${collName}"` : 'Removed from collection',
+        true
+      )
+    } else {
+      let errMsg = `HTTP ${res.status}`
+      try { const j = await res.json(); errMsg = j.error ?? errMsg } catch { /* ignore */ }
+      console.error('[Library] assign failed:', res.status, errMsg)
+      showToast(`Could not move pattern: ${errMsg}`, false)
     }
   }
 
@@ -824,6 +856,21 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] rounded-xl px-5 py-3 text-sm font-medium shadow-xl"
+          style={{
+            backgroundColor: toast.ok ? '#1a3a2a' : '#3a1a1a',
+            border: `1px solid ${toast.ok ? '#2a5a3a' : '#6a2a2a'}`,
+            color: toast.ok ? '#6dcfa0' : '#e08080',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
 
       {/* Collection form modal */}
       {showCollForm && (
