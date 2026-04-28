@@ -11,6 +11,8 @@ import type { CollectionPayload } from '@/app/ui/collection-form'
 import { NotesModal } from '@/app/ui/notes-modal'
 import { StashBuster } from '@/app/ui/stash-buster'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
+import { AddResourceModal } from '@/app/ui/add-resource-modal'
+import type { ResourcePayload } from '@/app/ui/add-resource-modal'
 
 type SavedPattern = {
   id: string
@@ -47,6 +49,33 @@ type FavoriteDesigner = {
   follower_count: number | null
   ravelry_permalink: string | null
   created_at: string
+}
+
+type Resource = {
+  id: string
+  title: string
+  url: string
+  resource_type: string
+  description: string | null
+  source: string | null
+  collection_id: string | null
+  status: string | null
+  started_at: string | null
+  completed_at: string | null
+  notes: string | null
+  saved_at: string
+  updated_at: string | null
+}
+
+// ── Resource type config ──────────────────────────────────────────────────────
+
+const RESOURCE_TYPES: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  weaving:  { label: 'Weaving',  color: '#A0C4FF', bg: '#1a2a3a', border: '#2a4a6a' },
+  spinning: { label: 'Spinning', color: '#BDB2FF', bg: '#1e1a3a', border: '#3a2a6a' },
+  dyeing:   { label: 'Dyeing',   color: '#CAFFBF', bg: '#1a3a1a', border: '#2a5a2a' },
+  knitting: { label: 'Knitting', color: '#C06B45', bg: '#3d2a1e', border: '#6a3a20' },
+  crochet:  { label: 'Crochet',  color: '#FFD6A5', bg: '#3a2e1a', border: '#6a4a1a' },
+  other:    { label: 'Other',    color: '#9a8e87', bg: '#38342f', border: '#4a4440' },
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -266,10 +295,19 @@ export default function LibraryPage() {
   // Status filter
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
 
-  // Bulk selection
+  // Bulk selection (patterns)
   const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
   const [bulkWorking, setBulkWorking]           = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+
+  // Resources
+  const [resources, setResources]               = useState<Resource[]>([])
+  const [showAddResource, setShowAddResource]   = useState(false)
+  const [notesResource, setNotesResource]       = useState<Resource | null>(null)
+  const [selectedResourceType, setSelectedResourceType] = useState<string | null>(null)
+  const [selectedResourceIds, setSelectedResourceIds]   = useState<Set<string>>(new Set())
+  const [bulkResourceWorking, setBulkResourceWorking]   = useState(false)
+  const [confirmBulkDeleteResources, setConfirmBulkDeleteResources] = useState(false)
 
   // Favorite designers
   const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
@@ -289,7 +327,7 @@ export default function LibraryPage() {
       if (!session) { router.replace('/login'); return }
       tokenRef.current = session.access_token
 
-      const [patternsRes, designersRes, collectionsRes] = await Promise.all([
+      const [patternsRes, designersRes, collectionsRes, resourcesRes] = await Promise.all([
         fetch('/api/patterns/saved', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }),
@@ -299,6 +337,9 @@ export default function LibraryPage() {
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false }),
         fetch('/api/collections', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
+        fetch('/api/resources', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }),
       ])
@@ -314,6 +355,7 @@ export default function LibraryPage() {
       setPatterns(await patternsRes.json())
       setDesigners(designersRes.data ?? [])
       if (collectionsRes.ok) setCollections(await collectionsRes.json())
+      if (resourcesRes.ok) setResources(await resourcesRes.json())
       setLoading(false)
     }
 
@@ -580,6 +622,121 @@ export default function LibraryPage() {
     setBulkWorking(false)
   }
 
+  // ── Resources ───────────────────────────────────────────────────────────────
+
+  async function handleAddResource(payload: ResourcePayload) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch('/api/resources', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error ?? 'Could not save resource')
+    }
+    const created: Resource = await res.json()
+    setResources(prev => [created, ...prev])
+  }
+
+  async function handleDeleteResource(id: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/resources/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (res.ok) setResources(prev => prev.filter(r => r.id !== id))
+    else console.error('[Library] resource delete failed:', res.status)
+  }
+
+  async function handleResourcePatch(id: string, updates: Record<string, unknown>) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/resources/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (res.ok) {
+      const updated: Resource = await res.json()
+      setResources(prev => prev.map(r => r.id === id ? updated : r))
+    } else {
+      showToast('Could not update resource', false)
+    }
+  }
+
+  async function handleSaveResourceNotes(id: string, notes: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/resources/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error ?? `HTTP ${res.status}`)
+    }
+    setResources(prev => prev.map(r => r.id === id ? { ...r, notes: notes.trim() || null } : r))
+  }
+
+  function toggleSelectResource(id: string) {
+    setSelectedResourceIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function clearResourceSelection() { setSelectedResourceIds(new Set()); setConfirmBulkDeleteResources(false) }
+
+  async function handleBulkDeleteResources() {
+    if (selectedResourceIds.size === 0 || bulkResourceWorking) return
+    setBulkResourceWorking(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const ids = [...selectedResourceIds]
+    const results = await Promise.all(ids.map(id =>
+      fetch(`/api/resources/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+    ))
+    const succeeded = ids.filter((_, i) => results[i].ok)
+    setResources(prev => prev.filter(r => !succeeded.includes(r.id)))
+    setSelectedResourceIds(new Set(ids.filter((_, i) => !results[i].ok)))
+    setConfirmBulkDeleteResources(false)
+    showToast(`Deleted ${succeeded.length} resource${succeeded.length === 1 ? '' : 's'}`, true)
+    setBulkResourceWorking(false)
+  }
+
+  async function handleBulkMoveResources(collectionId: string | null) {
+    if (selectedResourceIds.size === 0 || bulkResourceWorking) return
+    setBulkResourceWorking(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const ids = [...selectedResourceIds]
+    const collName = collectionId ? (collections.find(c => c.id === collectionId)?.name ?? '') : null
+    const results = await Promise.all(ids.map(id =>
+      fetch(`/api/resources/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collection_id: collectionId }),
+      })
+    ))
+    if (results.every(r => r.ok)) {
+      setResources(prev => prev.map(r => selectedResourceIds.has(r.id) ? { ...r, collection_id: collectionId } : r))
+      showToast(collectionId ? `Moved ${ids.length} resource${ids.length === 1 ? '' : 's'} to "${collName}"` : `Removed ${ids.length} from collection`, true)
+      clearResourceSelection()
+    } else {
+      showToast('Could not move some resources', false)
+    }
+    setBulkResourceWorking(false)
+  }
+
   // ── Favorite designers ──────────────────────────────────────────────────────
 
   async function handleAddDesigner(e: React.FormEvent) {
@@ -634,10 +791,19 @@ export default function LibraryPage() {
     ? collFiltered
     : collFiltered.filter(p => selectedStatuses.has(p.status ?? 'not_started'))
 
-  const uncategorizedCount = patterns.filter(p => !p.collection_id).length
+  const collFilteredResources =
+    selectedCollId === null            ? resources :
+    selectedCollId === 'uncategorized' ? resources.filter(r => !r.collection_id) :
+                                         resources.filter(r => r.collection_id === selectedCollId)
+
+  const filteredResources = selectedResourceType
+    ? collFilteredResources.filter(r => r.resource_type === selectedResourceType)
+    : collFilteredResources
+
+  const uncategorizedCount = patterns.filter(p => !p.collection_id).length + resources.filter(r => !r.collection_id).length
 
   function collectionCount(id: string) {
-    return patterns.filter(p => p.collection_id === id).length
+    return patterns.filter(p => p.collection_id === id).length + resources.filter(r => r.collection_id === id).length
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -658,12 +824,23 @@ export default function LibraryPage() {
               </p>
             )}
           </div>
-          <Link
-            href="/search"
-            className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]"
-          >
-            Find patterns
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddResource(true)}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: '#3a3530', border: '1px solid #4a4440' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4a4440')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#3a3530')}
+            >
+              + Resource
+            </button>
+            <Link
+              href="/search"
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]"
+            >
+              Find patterns
+            </Link>
+          </div>
         </div>
 
         {/* Error */}
@@ -819,6 +996,41 @@ export default function LibraryPage() {
                         </span>
                       </label>
                     ))}
+                  </div>
+                )}
+                {/* Resource type filter */}
+                {resources.length > 0 && (
+                  <div className="mt-3 border-t pt-3" style={{ borderColor: '#3a3530' }}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#7a6e67' }}>
+                        Resource Type
+                      </span>
+                      {selectedResourceType && (
+                        <button onClick={() => setSelectedResourceType(null)}
+                                className="text-xs transition-colors hover:text-white" style={{ color: '#5a504a' }}>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {Object.entries(RESOURCE_TYPES).map(([key, cfg]) => {
+                      const count = resources.filter(r => r.resource_type === key).length
+                      if (count === 0) return null
+                      return (
+                        <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[#3a3530]">
+                          <input
+                            type="radio" name="resource_type"
+                            checked={selectedResourceType === key}
+                            onChange={() => setSelectedResourceType(key)}
+                            onClick={() => { if (selectedResourceType === key) setSelectedResourceType(null) }}
+                            style={{ accentColor: cfg.color, width: 12, height: 12 }}
+                          />
+                          <span className="flex-1 text-xs" style={{ color: selectedResourceType === key ? '#f5f0eb' : '#9a8e87' }}>
+                            {cfg.label}
+                          </span>
+                          <span className="text-xs tabular-nums" style={{ color: '#5a504a' }}>{count}</span>
+                        </label>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -1245,6 +1457,238 @@ export default function LibraryPage() {
                   <RavelryFooter />
                 </>
               )}
+
+              {/* ── Resources section ── */}
+              {(resources.length > 0 || !loading) && (
+                <div className="space-y-4">
+                  {/* Resources heading */}
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Resources</h2>
+                    <div className="flex items-center gap-3">
+                      {filteredResources.length > 0 && (
+                        <button
+                          onClick={() => {
+                            const allSel = filteredResources.every(r => selectedResourceIds.has(r.id))
+                            allSel ? clearResourceSelection() : setSelectedResourceIds(new Set(filteredResources.map(r => r.id)))
+                          }}
+                          className="text-xs transition-colors hover:text-white" style={{ color: '#5a504a' }}
+                        >
+                          {filteredResources.every(r => selectedResourceIds.has(r.id)) ? 'Deselect all' : 'Select all'}
+                        </button>
+                      )}
+                      <span className="text-sm" style={{ color: '#7a6e67' }}>
+                        {filteredResources.length} {filteredResources.length === 1 ? 'resource' : 'resources'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Resource bulk action bar */}
+                  {selectedResourceIds.size > 0 && (
+                    <div className="sticky top-4 z-10 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
+                         style={{ backgroundColor: '#38342f', border: '1px solid #C06B45' }}>
+                      <span className="text-sm font-semibold" style={{ color: '#f5f0eb' }}>
+                        {selectedResourceIds.size} {selectedResourceIds.size === 1 ? 'resource' : 'resources'} selected
+                      </span>
+                      <div className="flex flex-1 flex-wrap items-center gap-2">
+                        {collections.length > 0 && (
+                          <select
+                            disabled={bulkResourceWorking}
+                            defaultValue=""
+                            onChange={e => {
+                              const val = e.target.value
+                              e.target.value = ''
+                              handleBulkMoveResources(val === '__none__' ? null : val)
+                            }}
+                            className="rounded-lg px-3 py-1.5 text-xs font-medium outline-none cursor-pointer disabled:opacity-40"
+                            style={{ backgroundColor: '#2e2b28', border: '1px solid #4a4440', color: '#c4b8ae' }}
+                          >
+                            <option value="" disabled>Move to…</option>
+                            <option value="__none__">No collection</option>
+                            {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        )}
+                        {confirmBulkDeleteResources ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: '#e0a090' }}>
+                              Delete {selectedResourceIds.size} resource{selectedResourceIds.size === 1 ? '' : 's'}? Cannot be undone.
+                            </span>
+                            <button onClick={handleBulkDeleteResources} disabled={bulkResourceWorking}
+                                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                                    style={{ backgroundColor: '#8b2020' }}>
+                              {bulkResourceWorking ? 'Deleting…' : 'Confirm'}
+                            </button>
+                            <button onClick={() => setConfirmBulkDeleteResources(false)}
+                                    className="text-xs hover:text-white" style={{ color: '#5a504a' }}>Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setConfirmBulkDeleteResources(true)} disabled={bulkResourceWorking}
+                                  className="rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+                                  style={{ backgroundColor: '#3a1a1a', border: '1px solid #6a2a2a', color: '#e08080' }}>
+                            Delete selected
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={clearResourceSelection} className="text-xs hover:text-white" style={{ color: '#5a504a' }}>Clear</button>
+                    </div>
+                  )}
+
+                  {/* Resources grid */}
+                  {resources.length === 0 ? (
+                    <div className="rounded-2xl px-6 py-10 text-center" style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
+                      <p className="text-sm font-medium" style={{ color: '#9a8e87' }}>No resources saved yet</p>
+                      <p className="mt-1 text-xs" style={{ color: '#5a504a' }}>
+                        Save links to weaving, spinning, and other fiber craft resources from anywhere on the web.
+                      </p>
+                      <button
+                        onClick={() => setShowAddResource(true)}
+                        className="mt-4 rounded-xl px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors"
+                      >
+                        Add your first resource
+                      </button>
+                    </div>
+                  ) : filteredResources.length === 0 ? (
+                    <p className="py-4 text-sm" style={{ color: '#5a504a' }}>No resources match the current filters.</p>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      {filteredResources.map(resource => {
+                        const isSelected  = selectedResourceIds.has(resource.id)
+                        const anySelected = selectedResourceIds.size > 0
+                        const typeCfg     = RESOURCE_TYPES[resource.resource_type] ?? RESOURCE_TYPES.other
+                        const status      = resource.status ?? 'not_started'
+                        const statusCfg   = STATUS_CONFIG[status]
+                        return (
+                          <div
+                            key={resource.id}
+                            className="group flex flex-col rounded-2xl hover:z-10"
+                            style={{
+                              backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
+                              border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
+                              position: 'relative',
+                              transition: 'border-color 100ms, background-color 100ms',
+                            }}
+                          >
+                            {/* Card header */}
+                            <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-0">
+                              <span
+                                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: typeCfg.bg, border: `1px solid ${typeCfg.border}`, color: typeCfg.color }}
+                              >
+                                {typeCfg.label}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {/* Select checkbox */}
+                                <button
+                                  onClick={() => toggleSelectResource(resource.id)}
+                                  aria-label={isSelected ? 'Deselect' : 'Select'}
+                                  className={`flex h-6 w-6 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                  style={{
+                                    backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
+                                    border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
+                                  }}
+                                >
+                                  {isSelected ? (
+                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M2 6l3 3 5-5" />
+                                    </svg>
+                                  ) : (
+                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                                      <rect x="1" y="1" width="10" height="10" rx="2" />
+                                    </svg>
+                                  )}
+                                </button>
+                                {/* Delete */}
+                                <button
+                                  onClick={() => handleDeleteResource(resource.id)}
+                                  aria-label="Delete resource"
+                                  className="flex h-6 w-6 items-center justify-center rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                  style={{ color: '#5a504a' }}
+                                  onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                                  onMouseLeave={e => (e.currentTarget.style.color = '#5a504a')}
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Card body */}
+                            <div className="flex flex-1 flex-col gap-2 p-4 pt-2">
+                              <div>
+                                <a
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold leading-snug hover:underline"
+                                  style={{ color: '#f5f0eb' }}
+                                >
+                                  {resource.title}
+                                </a>
+                                {resource.source && (
+                                  <p className="mt-0.5 text-xs" style={{ color: '#7a6e67' }}>{resource.source}</p>
+                                )}
+                                {resource.description && (
+                                  <p className="mt-1 text-xs leading-relaxed line-clamp-2" style={{ color: '#9a8e87' }}>
+                                    {resource.description}
+                                  </p>
+                                )}
+                                {resource.notes && (
+                                  <p className="mt-1 text-xs leading-relaxed line-clamp-2 italic" style={{ color: '#7a6e67' }}>
+                                    {resource.notes}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Status */}
+                              <select
+                                value={status}
+                                onChange={e => handleResourcePatch(resource.id, { status: e.target.value })}
+                                className="w-full rounded-lg px-2.5 py-1.5 text-xs font-medium outline-none cursor-pointer"
+                                style={{ backgroundColor: statusCfg.bg, border: `1px solid ${statusCfg.border}`, color: statusCfg.color }}
+                              >
+                                {Object.entries(STATUS_CONFIG).map(([key, c]) => (
+                                  <option key={key} value={key}>{c.label}</option>
+                                ))}
+                              </select>
+                              {status === 'in_progress' && resource.started_at && (
+                                <p className="text-xs" style={{ color: '#7a6e67' }}>Started {formatDate(resource.started_at)}</p>
+                              )}
+                              {status === 'completed' && resource.completed_at && (
+                                <p className="text-xs" style={{ color: '#7a6e67' }}>
+                                  Completed {formatDate(resource.completed_at)}
+                                  {resource.started_at && <span> ({daysBetween(resource.started_at, resource.completed_at)} days)</span>}
+                                </p>
+                              )}
+
+                              {/* Footer: notes + collection */}
+                              <div className="mt-auto flex items-center justify-end gap-1 pt-1">
+                                <button
+                                  onClick={() => setNotesResource(resource)}
+                                  title={resource.notes ? 'Edit notes' : 'Add notes'}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#3a3530]"
+                                  style={{ color: resource.notes ? '#C4956A' : '#5a504a' }}
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24"
+                                       fill={resource.notes ? 'currentColor' : 'none'}
+                                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                </button>
+                                <CollectionPicker
+                                  pattern={{ ...resource, pattern_name: resource.title, pattern_id: 0, permalink: '', photo_url: null, designer_name: null, yardage: null, yarn_weight: null, updated_at: resource.updated_at, created_at: resource.saved_at }}
+                                  collections={collections}
+                                  onAssign={(_, collId) => handleResourcePatch(resource.id, { collection_id: collId })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1281,6 +1725,24 @@ export default function LibraryPage() {
           initial={editingColl ?? undefined}
           onSave={editingColl ? handleEditCollection : handleCreateCollection}
           onClose={() => { setShowCollForm(false); setEditingColl(null) }}
+        />
+      )}
+
+      {/* Add resource modal */}
+      {showAddResource && (
+        <AddResourceModal
+          onSave={handleAddResource}
+          onClose={() => setShowAddResource(false)}
+        />
+      )}
+
+      {/* Resource notes modal */}
+      {notesResource && (
+        <NotesModal
+          patternName={notesResource.title}
+          initialNotes={notesResource.notes ?? ''}
+          onSave={notes => handleSaveResourceNotes(notesResource.id, notes)}
+          onClose={() => setNotesResource(null)}
         />
       )}
     </div>
