@@ -1113,7 +1113,7 @@ export default function LibraryPage() {
                             <button
                               onClick={() => toggleSelect(pattern.id)}
                               aria-label={isSelected ? 'Deselect pattern' : 'Select pattern'}
-                              className={`absolute left-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                              className={`absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                               style={{
                                 backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
                                 border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
