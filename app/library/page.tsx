@@ -1084,12 +1084,13 @@ export default function LibraryPage() {
                       return (
                         <div
                           key={pattern.id}
-                          className="flex flex-col rounded-2xl transition-transform hover:-translate-y-1"
+                          className="group flex flex-col rounded-2xl hover:-translate-y-1 hover:z-10"
                           style={{
                             backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
                             border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
                             opacity: isDeleting ? 0.5 : 1,
                             transition: 'opacity 200ms, transform 150ms, border-color 100ms, background-color 100ms',
+                            position: 'relative',
                           }}
                         >
                           {/* Image — rounded-t-2xl clips image to card corners without hiding the dropdown */}
@@ -1108,19 +1109,16 @@ export default function LibraryPage() {
                               }} />
                             )}
 
-                            {/* Select checkbox — top-left, always visible when any selected, else on hover */}
+                            {/* Select checkbox — visible on card hover, always visible when selected or any selected */}
                             <button
                               onClick={() => toggleSelect(pattern.id)}
                               aria-label={isSelected ? 'Deselect pattern' : 'Select pattern'}
-                              className="absolute left-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150"
+                              className={`absolute left-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                               style={{
                                 backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
                                 border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
                                 backdropFilter: 'blur(6px)',
-                                opacity: isSelected || anySelected ? 1 : 0,
                               }}
-                              onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                              onMouseLeave={e => { if (!isSelected && !anySelected) (e.currentTarget as HTMLElement).style.opacity = '0' }}
                             >
                               {isSelected ? (
                                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
