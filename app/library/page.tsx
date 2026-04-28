@@ -23,6 +23,9 @@ type SavedPattern = {
   notes: string | null
   yardage: number | null
   yarn_weight: string | null
+  status: string | null
+  started_at: string | null
+  completed_at: string | null
   updated_at: string | null
   created_at: string
 }
@@ -44,6 +47,23 @@ type FavoriteDesigner = {
   follower_count: number | null
   ravelry_permalink: string | null
   created_at: string
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  not_started: { label: 'Not Started', color: '#7a6e67', bg: '#38342f', border: '#4a4440' },
+  in_progress: { label: 'In Progress', color: '#C06B45', bg: '#3d2a1e', border: '#6a3a20' },
+  completed:   { label: 'Completed',   color: '#6dcfa0', bg: '#1a3a2a', border: '#2a5a3a' },
+  on_hold:     { label: 'On Hold',     color: '#C4956A', bg: '#3a3018', border: '#5a4a28' },
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function daysBetween(isoA: string, isoB: string): number {
+  return Math.round((new Date(isoB).getTime() - new Date(isoA).getTime()) / 86_400_000)
 }
 
 function TrashIcon() {
@@ -243,6 +263,9 @@ export default function LibraryPage() {
     toastTimer.current = setTimeout(() => setToast(null), 3000)
   }
 
+  // Status filter
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
+
   // Favorite designers
   const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
   const [newDesigner, setNewDesigner]               = useState('')
@@ -431,6 +454,33 @@ export default function LibraryPage() {
     )
   }
 
+  // ── Status ──────────────────────────────────────────────────────────────────
+
+  async function handleStatusChange(patternId: string, newStatus: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const res = await fetch(`/api/patterns/saved/${patternId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    })
+
+    if (res.ok) {
+      const updated = await res.json()
+      setPatterns(prev => prev.map(p =>
+        p.id === patternId
+          ? { ...p, status: updated.status, started_at: updated.started_at, completed_at: updated.completed_at }
+          : p
+      ))
+    } else {
+      showToast('Could not update status', false)
+    }
+  }
+
   // ── Pattern delete ──────────────────────────────────────────────────────────
 
   async function handleDelete(rowId: string) {
@@ -493,10 +543,14 @@ export default function LibraryPage() {
 
   // ── Derived state ───────────────────────────────────────────────────────────
 
-  const filteredPatterns =
-    selectedCollId === null           ? patterns :
-    selectedCollId === 'uncategorized'? patterns.filter(p => !p.collection_id) :
-                                        patterns.filter(p => p.collection_id === selectedCollId)
+  const collFiltered =
+    selectedCollId === null            ? patterns :
+    selectedCollId === 'uncategorized' ? patterns.filter(p => !p.collection_id) :
+                                         patterns.filter(p => p.collection_id === selectedCollId)
+
+  const filteredPatterns = selectedStatuses.size === 0
+    ? collFiltered
+    : collFiltered.filter(p => selectedStatuses.has(p.status ?? 'not_started'))
 
   const uncategorizedCount = patterns.filter(p => !p.collection_id).length
 
@@ -643,6 +697,47 @@ export default function LibraryPage() {
                   <p className="mt-2 text-xs" style={{ color: '#5a504a' }}>
                     Create a collection to organize your patterns.
                   </p>
+                )}
+
+                {/* Status filter */}
+                {patterns.length > 0 && (
+                  <div className="mt-3 border-t pt-3" style={{ borderColor: '#3a3530' }}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#7a6e67' }}>
+                        Status
+                      </span>
+                      {selectedStatuses.size > 0 && (
+                        <button
+                          onClick={() => setSelectedStatuses(new Set())}
+                          className="text-xs transition-colors hover:text-white"
+                          style={{ color: '#5a504a' }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                      <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[#3a3530]">
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.has(key)}
+                          onChange={() => setSelectedStatuses(prev => {
+                            const n = new Set(prev)
+                            n.has(key) ? n.delete(key) : n.add(key)
+                            return n
+                          })}
+                          style={{ accentColor: cfg.color, width: 12, height: 12 }}
+                        />
+                        <span className="flex items-center gap-1.5 text-xs" style={{ color: selectedStatuses.has(key) ? '#f5f0eb' : '#9a8e87' }}>
+                          <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                          {cfg.label}
+                        </span>
+                        <span className="ml-auto text-xs tabular-nums" style={{ color: '#5a504a' }}>
+                          {patterns.filter(p => (p.status ?? 'not_started') === key).length}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -875,6 +970,43 @@ export default function LibraryPage() {
                                 </p>
                               )}
                             </div>
+
+                            {/* Status row */}
+                            {(() => {
+                              const status = pattern.status ?? 'not_started'
+                              const cfg = STATUS_CONFIG[status]
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <select
+                                    value={status}
+                                    onChange={e => handleStatusChange(pattern.id, e.target.value)}
+                                    className="w-full rounded-lg px-2.5 py-1.5 text-xs font-medium outline-none cursor-pointer"
+                                    style={{
+                                      backgroundColor: cfg.bg,
+                                      border: `1px solid ${cfg.border}`,
+                                      color: cfg.color,
+                                    }}
+                                  >
+                                    {Object.entries(STATUS_CONFIG).map(([key, c]) => (
+                                      <option key={key} value={key}>{c.label}</option>
+                                    ))}
+                                  </select>
+                                  {status === 'in_progress' && pattern.started_at && (
+                                    <p className="text-xs" style={{ color: '#7a6e67' }}>
+                                      Started {formatDate(pattern.started_at)}
+                                    </p>
+                                  )}
+                                  {status === 'completed' && pattern.completed_at && (
+                                    <p className="text-xs" style={{ color: '#7a6e67' }}>
+                                      Completed {formatDate(pattern.completed_at)}
+                                      {pattern.started_at && (
+                                        <span> ({daysBetween(pattern.started_at, pattern.completed_at)} days)</span>
+                                      )}
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            })()}
 
                             <div className="mt-auto flex items-center gap-2 pt-2">
                               <Link
