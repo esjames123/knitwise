@@ -266,12 +266,20 @@ export default function LibraryPage() {
   // Status filter
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
+  const [bulkWorking, setBulkWorking]           = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+
   // Favorite designers
   const [designers, setDesigners]                   = useState<FavoriteDesigner[]>([])
   const [newDesigner, setNewDesigner]               = useState('')
   const [addingDesigner, setAddingDesigner]         = useState(false)
   const [removingDesignerId, setRemovingDesignerId] = useState<string | null>(null)
   const [designerError, setDesignerError]           = useState<string | null>(null)
+
+  // Clear selection whenever the active filter changes
+  useEffect(() => { setSelectedIds(new Set()); setConfirmBulkDelete(false) }, [selectedCollId, selectedStatuses])
 
   useEffect(() => {
     let cancelled = false
@@ -496,6 +504,80 @@ export default function LibraryPage() {
     if (res.ok) setPatterns(prev => prev.filter(p => p.id !== rowId))
     else console.error('[Library] delete failed:', res.status)
     setDeletingId(null)
+  }
+
+  // ── Bulk operations ────────────────────────────────────────────────────────
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function clearSelection() { setSelectedIds(new Set()); setConfirmBulkDelete(false) }
+
+  async function handleBulkMove(collectionId: string | null) {
+    if (selectedIds.size === 0 || bulkWorking) return
+    setBulkWorking(true)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const ids = [...selectedIds]
+    const collName = collectionId ? (collections.find(c => c.id === collectionId)?.name ?? '') : null
+    let ok = false
+
+    if (collectionId) {
+      const res = await fetch(`/api/collections/${collectionId}/patterns`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pattern_ids: ids }),
+      })
+      ok = res.ok
+    } else {
+      const results = await Promise.all(ids.map(id =>
+        fetch(`/api/patterns/saved/${id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collection_id: null }),
+        })
+      ))
+      ok = results.every(r => r.ok)
+    }
+
+    if (ok) {
+      setPatterns(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, collection_id: collectionId } : p))
+      showToast(
+        collectionId
+          ? `Moved ${ids.length} pattern${ids.length === 1 ? '' : 's'} to "${collName}"`
+          : `Removed ${ids.length} pattern${ids.length === 1 ? '' : 's'} from collection`,
+        true
+      )
+      clearSelection()
+    } else {
+      showToast('Could not move some patterns', false)
+    }
+    setBulkWorking(false)
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0 || bulkWorking) return
+    setBulkWorking(true)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.replace('/login'); return }
+
+    const ids = [...selectedIds]
+    const results = await Promise.all(ids.map(id =>
+      fetch(`/api/patterns/saved/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+    ))
+
+    const succeeded = ids.filter((_, i) => results[i].ok)
+    setPatterns(prev => prev.filter(p => !succeeded.includes(p.id)))
+    setSelectedIds(new Set(ids.filter((_, i) => !results[i].ok)))
+    setConfirmBulkDelete(false)
+    showToast(`Deleted ${succeeded.length} pattern${succeeded.length === 1 ? '' : 's'}`, true)
+    setBulkWorking(false)
   }
 
   // ── Favorite designers ──────────────────────────────────────────────────────
@@ -857,7 +939,7 @@ export default function LibraryPage() {
 
               {/* Patterns section heading */}
               {patterns.length > 0 && (
-                <div className="flex items-baseline justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>
                     {selectedCollId === null
                       ? 'All Patterns'
@@ -865,9 +947,101 @@ export default function LibraryPage() {
                         ? 'Uncategorized'
                         : (collections.find(c => c.id === selectedCollId)?.name ?? 'Patterns')}
                   </h2>
-                  <span className="text-sm" style={{ color: '#7a6e67' }}>
-                    {filteredPatterns.length} {filteredPatterns.length === 1 ? 'pattern' : 'patterns'}
+                  <div className="flex items-center gap-3">
+                    {filteredPatterns.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const allSelected = filteredPatterns.every(p => selectedIds.has(p.id))
+                          allSelected
+                            ? clearSelection()
+                            : setSelectedIds(new Set(filteredPatterns.map(p => p.id)))
+                        }}
+                        className="text-xs transition-colors hover:text-white"
+                        style={{ color: '#5a504a' }}
+                      >
+                        {filteredPatterns.every(p => selectedIds.has(p.id)) ? 'Deselect all' : 'Select all'}
+                      </button>
+                    )}
+                    <span className="text-sm" style={{ color: '#7a6e67' }}>
+                      {filteredPatterns.length} {filteredPatterns.length === 1 ? 'pattern' : 'patterns'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Bulk action bar */}
+              {selectedIds.size > 0 && (
+                <div
+                  className="sticky top-4 z-10 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
+                  style={{ backgroundColor: '#38342f', border: '1px solid #C06B45' }}
+                >
+                  <span className="text-sm font-semibold" style={{ color: '#f5f0eb' }}>
+                    {selectedIds.size} {selectedIds.size === 1 ? 'pattern' : 'patterns'} selected
                   </span>
+
+                  <div className="flex flex-1 flex-wrap items-center gap-2">
+                    {/* Move to collection */}
+                    {collections.length > 0 && (
+                      <select
+                        disabled={bulkWorking}
+                        defaultValue=""
+                        onChange={e => {
+                          const val = e.target.value
+                          e.target.value = ''
+                          handleBulkMove(val === '__none__' ? null : val)
+                        }}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium outline-none cursor-pointer disabled:opacity-40"
+                        style={{ backgroundColor: '#2e2b28', border: '1px solid #4a4440', color: '#c4b8ae' }}
+                      >
+                        <option value="" disabled>Move to…</option>
+                        <option value="__none__">No collection</option>
+                        {collections.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Delete */}
+                    {confirmBulkDelete ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: '#e0a090' }}>
+                          Delete {selectedIds.size} pattern{selectedIds.size === 1 ? '' : 's'}? This cannot be undone.
+                        </span>
+                        <button
+                          onClick={handleBulkDelete}
+                          disabled={bulkWorking}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                          style={{ backgroundColor: '#8b2020' }}
+                        >
+                          {bulkWorking ? 'Deleting…' : 'Confirm delete'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmBulkDelete(false)}
+                          className="text-xs transition-colors hover:text-white"
+                          style={{ color: '#5a504a' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmBulkDelete(true)}
+                        disabled={bulkWorking}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+                        style={{ backgroundColor: '#3a1a1a', border: '1px solid #6a2a2a', color: '#e08080' }}
+                      >
+                        Delete selected
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={clearSelection}
+                    className="text-xs transition-colors hover:text-white"
+                    style={{ color: '#5a504a' }}
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
 
@@ -904,16 +1078,18 @@ export default function LibraryPage() {
                 <>
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {filteredPatterns.map(pattern => {
-                      const isDeleting = deletingId === pattern.id
+                      const isDeleting  = deletingId === pattern.id
+                      const isSelected  = selectedIds.has(pattern.id)
+                      const anySelected = selectedIds.size > 0
                       return (
                         <div
                           key={pattern.id}
                           className="flex flex-col rounded-2xl transition-transform hover:-translate-y-1"
                           style={{
-                            backgroundColor: '#2e2b28',
-                            border: '1px solid #3a3530',
+                            backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
+                            border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
                             opacity: isDeleting ? 0.5 : 1,
-                            transition: 'opacity 200ms, transform 150ms',
+                            transition: 'opacity 200ms, transform 150ms, border-color 100ms, background-color 100ms',
                           }}
                         >
                           {/* Image — rounded-t-2xl clips image to card corners without hiding the dropdown */}
@@ -931,6 +1107,31 @@ export default function LibraryPage() {
                                 opacity: 0.7,
                               }} />
                             )}
+
+                            {/* Select checkbox — top-left, always visible when any selected, else on hover */}
+                            <button
+                              onClick={() => toggleSelect(pattern.id)}
+                              aria-label={isSelected ? 'Deselect pattern' : 'Select pattern'}
+                              className="absolute left-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150"
+                              style={{
+                                backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
+                                border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
+                                backdropFilter: 'blur(6px)',
+                                opacity: isSelected || anySelected ? 1 : 0,
+                              }}
+                              onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                              onMouseLeave={e => { if (!isSelected && !anySelected) (e.currentTarget as HTMLElement).style.opacity = '0' }}
+                            >
+                              {isSelected ? (
+                                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M2 6l3 3 5-5" />
+                                </svg>
+                              ) : (
+                                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                                  <rect x="1" y="1" width="10" height="10" rx="2" />
+                                </svg>
+                              )}
+                            </button>
 
                             {/* Delete button */}
                             <button

@@ -1,27 +1,29 @@
 import { getUserFromRequest } from '@/lib/supabase-server'
 
-// Assign a saved pattern to this collection
+// Assign one or more saved patterns to this collection
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await getUserFromRequest(request)
   if (!auth) {
-    console.error('[PATCH collections/patterns] Unauthorized')
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { id: collectionId } = await params
-  console.log('[PATCH collections/patterns] collectionId:', collectionId, 'user:', auth.user.id)
 
   let body: unknown
   try { body = await request.json() }
   catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
-  const { pattern_id } = body as Record<string, unknown>
-  if (!pattern_id || typeof pattern_id !== 'string') {
-    return Response.json({ error: 'pattern_id is required' }, { status: 400 })
+  // Accept either a single pattern_id or an array pattern_ids
+  const { pattern_id, pattern_ids } = body as Record<string, unknown>
+  const ids: string[] = Array.isArray(pattern_ids)
+    ? pattern_ids.filter((x): x is string => typeof x === 'string')
+    : typeof pattern_id === 'string' ? [pattern_id] : []
+
+  if (ids.length === 0) {
+    return Response.json({ error: 'pattern_id or pattern_ids is required' }, { status: 400 })
   }
-  console.log('[PATCH collections/patterns] pattern_id:', pattern_id)
 
   // Verify the collection belongs to this user
   const { data: collection, error: collErr } = await auth.client
@@ -32,14 +34,13 @@ export async function PATCH(
     .single()
 
   if (collErr || !collection) {
-    console.error('[PATCH collections/patterns] Collection not found:', collErr?.message)
     return Response.json({ error: 'Collection not found' }, { status: 404 })
   }
 
   const { data, error } = await auth.client
     .from('saved_patterns')
     .update({ collection_id: collectionId })
-    .eq('id', pattern_id)
+    .in('id', ids)
     .eq('user_id', auth.user.id)
     .select()
 
@@ -48,10 +49,8 @@ export async function PATCH(
     return Response.json({ error: error.message, code: error.code }, { status: 500 })
   }
   if (!data || data.length === 0) {
-    console.error('[PATCH collections/patterns] 0 rows — missing UPDATE RLS policy on saved_patterns?')
-    return Response.json({ error: 'Pattern not found' }, { status: 404 })
+    return Response.json({ error: 'Patterns not found' }, { status: 404 })
   }
 
-  console.log('[PATCH collections/patterns] Success')
-  return Response.json(data[0])
+  return Response.json(ids.length === 1 ? data[0] : data)
 }
