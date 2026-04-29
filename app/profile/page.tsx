@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Nav from '@/app/ui/nav'
 import { supabase } from '@/lib/supabase'
 import type { Group } from '@/app/ui/group-card'
+import type { FiberBusiness } from '@/app/ui/fiber-business-card'
 
 function formatDate(iso: string | undefined) {
   if (!iso) return '—'
@@ -22,8 +23,9 @@ export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser]             = useState<any>(null)
   const [loading, setLoading]       = useState(true)
-  const [savedCount, setSavedCount] = useState<number | null>(null)
-  const [myGroups, setMyGroups]     = useState<Group[]>([])
+  const [savedCount, setSavedCount]   = useState<number | null>(null)
+  const [myGroups, setMyGroups]       = useState<Group[]>([])
+  const [myBusinesses, setMyBusinesses] = useState<FiberBusiness[]>([])
 
   // Email update
   const [newEmail, setNewEmail]       = useState('')
@@ -40,13 +42,15 @@ export default function ProfilePage() {
       if (!session) { router.replace('/login'); return }
       if (cancelled) return
       setUser(session.user)
-      const [{ count }, { data: groups }] = await Promise.all([
+      const [{ count }, { data: groups }, { data: bizData }] = await Promise.all([
         supabase.from('saved_patterns').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id),
         supabase.from('groups').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
+        supabase.from('fiber_businesses').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
       ])
       if (!cancelled) {
         setSavedCount(count ?? 0)
         setMyGroups((groups as Group[]) ?? [])
+        setMyBusinesses((bizData as FiberBusiness[]) ?? [])
         setLoading(false)
       }
     }
@@ -121,10 +125,11 @@ export default function ProfilePage() {
         {/* Stats */}
         <div style={card}>
           <p style={sectionTitle}>Stats</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
             {[
-              { label: 'Patterns saved', val: savedCount ?? '—' },
-              { label: 'Groups posted',  val: myGroups.length },
+              { label: 'Patterns saved',    val: savedCount ?? '—' },
+              { label: 'Groups posted',     val: myGroups.length },
+              { label: 'Businesses listed', val: myBusinesses.length },
             ].map(({ label: l, val }) => (
               <div key={l} style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', borderRadius: '0.75rem', padding: '1.25rem 1rem', textAlign: 'center' }}>
                 <span style={{ display: 'block', fontSize: '1.875rem', fontWeight: 700, color: '#C06B45' }}>{val}</span>
@@ -189,6 +194,46 @@ export default function ProfilePage() {
                       <p style={{ color: '#f5f0eb', fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</p>
                       {loc && <p style={{ color: '#7a6e67', fontSize: '0.75rem', marginTop: '0.125rem' }}>{loc}</p>}
                       {g.description && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{g.description}</p>}
+                    </div>
+                    <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      View →
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Your Fiber Businesses */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            <p style={sectionTitle}>Your Fiber Businesses</p>
+            <Link href="/community" style={{ color: '#C06B45', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+              View all →
+            </Link>
+          </div>
+          {myBusinesses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+              <p style={{ color: '#7a6e67', fontSize: '0.875rem' }}>You haven&apos;t listed any businesses yet.</p>
+              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#C06B45', fontSize: '0.875rem', fontWeight: 600 }}>
+                List your first business →
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {myBusinesses.map((b, i) => {
+                const loc = [b.location_city, b.location_state].filter(Boolean).join(', ')
+                const typeLabel = { farm: 'Farm', mill: 'Mill', yarn_shop: 'Yarn Shop', dyer: 'Dyer', other: 'Other' }[b.business_type] ?? b.business_type
+                return (
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', padding: '0.625rem 0', ...(i < myBusinesses.length - 1 ? divider : {}) }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <p style={{ color: '#f5f0eb', fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</p>
+                        <span style={{ flexShrink: 0, backgroundColor: '#3a2210', border: '1px solid #6b3a1f', color: '#d4956a', borderRadius: '9999px', padding: '0.125rem 0.5rem', fontSize: '0.7rem', fontWeight: 500 }}>{typeLabel}</span>
+                      </div>
+                      {loc && <p style={{ color: '#7a6e67', fontSize: '0.75rem', marginTop: '0.125rem' }}>{loc}</p>}
+                      {b.about && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.about}</p>}
                     </div>
                     <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       View →
