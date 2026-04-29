@@ -65,6 +65,7 @@ type Resource = {
   notes: string | null
   saved_at: string
   updated_at: string | null
+  image_url: string | null
 }
 
 // ── Resource type config ──────────────────────────────────────────────────────
@@ -625,20 +626,48 @@ export default function LibraryPage() {
   // ── Resources ───────────────────────────────────────────────────────────────
 
   async function handleAddResource(payload: ResourcePayload) {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.replace('/login'); return }
+    console.log('[handleAddResource] called with:', payload)
 
-    const res = await fetch('/api/resources', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}))
-      throw new Error(json.error ?? 'Could not save resource')
+    const { data: { session } } = await supabase.auth.getSession()
+    console.log('[handleAddResource] session:', session ? `uid=${session.user.id}` : 'null')
+
+    if (!session) {
+      showToast('You must be logged in to save resources', false)
+      throw new Error('You must be logged in to save resources.')
     }
-    const created: Resource = await res.json()
+
+    console.log('[handleAddResource] fetching POST /api/resources...')
+    let res: Response
+    try {
+      res = await fetch('/api/resources', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } catch (err) {
+      console.error('[handleAddResource] fetch threw:', err)
+      showToast('Network error — could not save resource', false)
+      throw new Error('Network error — could not save resource')
+    }
+
+    console.log('[handleAddResource] response status:', res.status)
+    const json = await res.json().catch(() => ({} as Record<string, unknown>))
+    console.log('[handleAddResource] response body:', json)
+
+    if (res.status === 409) {
+      throw new Error('This URL is already in your library.')
+    }
+
+    if (!res.ok) {
+      const msg = (json as { error?: string }).error ?? 'Could not save resource'
+      showToast(msg, false)
+      throw new Error(msg)
+    }
+
+    const created = json as Resource
     setResources(prev => [created, ...prev])
+    showToast('Resource saved!', true)
+    console.log('[handleAddResource] success, id:', created.id)
   }
 
   async function handleDeleteResource(id: string) {
@@ -1366,13 +1395,13 @@ export default function LibraryPage() {
                               <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
                                 {pattern.pattern_name}
                               </h2>
-                              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
                                 {pattern.designer_name && (
                                   <span>by <DesignerPopover name={pattern.designer_name} /></span>
                                 )}
                                 {pattern.designer_name && <span aria-hidden="true">·</span>}
                                 <RavelryCardCredit />
-                              </p>
+                              </div>
                               {(pattern.yarn_weight || pattern.yardage) && (
                                 <p className="mt-1 flex flex-wrap gap-x-2 text-xs" style={{ color: '#7a6e67' }}>
                                   {pattern.yarn_weight && <span>{pattern.yarn_weight}</span>}
@@ -1559,7 +1588,7 @@ export default function LibraryPage() {
                         return (
                           <div
                             key={resource.id}
-                            className="group flex flex-col rounded-2xl hover:z-10"
+                            className="group flex flex-col rounded-2xl overflow-hidden hover:z-10"
                             style={{
                               backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
                               border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
@@ -1567,53 +1596,69 @@ export default function LibraryPage() {
                               transition: 'border-color 100ms, background-color 100ms',
                             }}
                           >
-                            {/* Card header */}
-                            <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-0">
+                            {/* Image area */}
+                            <div className="relative w-full overflow-hidden" style={{ height: '160px' }}>
+                              {resource.image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={resource.image_url}
+                                  alt={resource.title}
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0" style={{
+                                  background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                                  opacity: 0.7,
+                                }} />
+                              )}
+
+                              {/* Type badge — bottom-left overlay */}
                               <span
-                                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                style={{ backgroundColor: typeCfg.bg, border: `1px solid ${typeCfg.border}`, color: typeCfg.color }}
+                                className="absolute bottom-2 left-2 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                style={{ backgroundColor: typeCfg.bg, border: `1px solid ${typeCfg.border}`, color: typeCfg.color, backdropFilter: 'blur(4px)' }}
                               >
                                 {typeCfg.label}
                               </span>
-                              <div className="flex items-center gap-1">
-                                {/* Select checkbox */}
-                                <button
-                                  onClick={() => toggleSelectResource(resource.id)}
-                                  aria-label={isSelected ? 'Deselect' : 'Select'}
-                                  className={`flex h-6 w-6 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                  style={{
-                                    backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
-                                    border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
-                                  }}
-                                >
-                                  {isSelected ? (
-                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M2 6l3 3 5-5" />
-                                    </svg>
-                                  ) : (
-                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                                      <rect x="1" y="1" width="10" height="10" rx="2" />
-                                    </svg>
-                                  )}
-                                </button>
-                                {/* Delete */}
-                                <button
-                                  onClick={() => handleDeleteResource(resource.id)}
-                                  aria-label="Delete resource"
-                                  className="flex h-6 w-6 items-center justify-center rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                                  style={{ color: '#5a504a' }}
-                                  onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
-                                  onMouseLeave={e => (e.currentTarget.style.color = '#5a504a')}
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+
+                              {/* Delete — top-right overlay */}
+                              <button
+                                onClick={() => handleDeleteResource(resource.id)}
+                                aria-label="Delete resource"
+                                className="absolute top-2 right-9 flex h-7 w-7 items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-colors"
+                                style={{ backgroundColor: 'rgba(26,23,20,0.75)', backdropFilter: 'blur(6px)', color: '#9a8e87' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = '#e08080')}
+                                onMouseLeave={e => (e.currentTarget.style.color = '#9a8e87')}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                </svg>
+                              </button>
+
+                              {/* Select checkbox — bottom-right overlay */}
+                              <button
+                                onClick={() => toggleSelectResource(resource.id)}
+                                aria-label={isSelected ? 'Deselect' : 'Select'}
+                                className={`absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                style={{
+                                  backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
+                                  border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
+                                  backdropFilter: 'blur(6px)',
+                                }}
+                              >
+                                {isSelected ? (
+                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M2 6l3 3 5-5" />
                                   </svg>
-                                </button>
-                              </div>
+                                ) : (
+                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                                    <rect x="1" y="1" width="10" height="10" rx="2" />
+                                  </svg>
+                                )}
+                              </button>
                             </div>
 
                             {/* Card body */}
-                            <div className="flex flex-1 flex-col gap-2 p-4 pt-2">
+                            <div className="flex flex-1 flex-col gap-2 p-4">
                               <div>
                                 <a
                                   href={resource.url}

@@ -50,14 +50,33 @@ export function AddResourceModal({
   }, [onClose])
 
   async function handleSubmit(e: React.FormEvent) {
+    console.log('[AddResourceModal] handleSubmit called')
     e.preventDefault()
-    if (!title.trim() || !url.trim()) { setError('Title and URL are required.'); return }
+
+    const payload = {
+      title: title.trim(),
+      url: url.trim(),
+      resource_type: resourceType,
+      description: description.trim(),
+      source: source.trim(),
+    }
+    console.log('[AddResourceModal] form data:', payload)
+
+    if (!payload.title || !payload.url) {
+      console.log('[AddResourceModal] validation failed — title or url empty')
+      setError('Title and URL are required.')
+      return
+    }
+
     setSaving(true)
     setError(null)
+    console.log('[AddResourceModal] calling onSave...')
     try {
-      await onSave({ title: title.trim(), url: url.trim(), resource_type: resourceType, description: description.trim(), source: source.trim() })
+      await onSave(payload)
+      console.log('[AddResourceModal] onSave resolved — closing modal')
       onClose()
     } catch (err) {
+      console.error('[AddResourceModal] onSave threw:', err)
       setError(err instanceof Error ? err.message : 'Could not save resource.')
     }
     setSaving(false)
@@ -156,7 +175,14 @@ export function AddResourceModal({
             />
           </div>
 
-          {error && <p className="text-xs" style={{ color: '#e0a090' }}>{error}</p>}
+          {error && (
+            <div
+              className="rounded-xl px-4 py-3 text-sm"
+              style={{ backgroundColor: '#3a1a1a', border: '1px solid #8a3a3a', color: '#e0a090' }}
+            >
+              {error}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-1">
             <button

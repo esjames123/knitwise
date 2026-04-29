@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
 import Nav from '@/app/ui/nav'
 import SearchBar from '@/app/ui/search-bar'
 import FilterSidebar from '@/app/ui/filter-sidebar'
@@ -6,6 +7,8 @@ import { buildActiveChips } from '@/app/lib/filter-chips'
 import SaveButton from '@/app/ui/save-button'
 import { DesignerPopover } from '@/app/ui/designer-popover'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
+import { ResourceResults } from '@/app/ui/resource-results'
+import type { PublicResource } from '@/app/ui/resource-results'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +95,30 @@ const PATTERN_CATEGORY_IDS: Record<string, number> = {
   blanket:   79,
   bag:       69,
   toy:      364,
+}
+
+// ─── Public resources fetch ───────────────────────────────────────────────────
+
+async function searchResources(query: string): Promise<PublicResource[]> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (terms.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('resources')
+    .select('id, title, url, resource_type, description, source, creator_name, image_url')
+    .order('saved_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.filter((r: PublicResource) => {
+    const haystack = [r.title, r.description, r.source, r.resource_type, r.creator_name]
+      .filter(Boolean).join(' ').toLowerCase()
+    return terms.every(t => haystack.includes(t))
+  })
 }
 
 // ─── API fetch ─────────────────────────────────────────────────────────────────
@@ -251,7 +278,10 @@ export default async function SearchPage({
     needle:     sp('needle'),
   }
 
-  const data = filters.query ? await searchRavelry(filters) : null
+  const [data, communityResources] = await Promise.all([
+    filters.query ? searchRavelry(filters) : Promise.resolve(null),
+    filters.query ? searchResources(filters.query) : Promise.resolve([]),
+  ])
 
   const chips = buildActiveChips(params as Record<string, string | string[] | undefined>)
 
@@ -376,13 +406,13 @@ export default async function SearchPage({
                                 <h2 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
                                   {pattern.name}
                                 </h2>
-                                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm" style={{ color: '#9a8e87' }}>
                                   {pattern.designer && (
                                     <span>by <DesignerPopover name={pattern.designer.name} /></span>
                                   )}
                                   {pattern.designer && <span aria-hidden="true">·</span>}
                                   <RavelryCardCredit />
-                                </p>
+                                </div>
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -433,6 +463,11 @@ export default async function SearchPage({
                   )}
                   <RavelryFooter />
                 </>
+              )}
+
+              {/* Community resources */}
+              {communityResources.length > 0 && (
+                <ResourceResults resources={communityResources} />
               )}
             </div>
           </div>

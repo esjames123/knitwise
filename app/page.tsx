@@ -2,84 +2,76 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import SearchBar from './ui/search-bar'
 import Nav from './ui/nav'
+import SaveButton from './ui/save-button'
+import { RavelryFooter } from './ui/ravelry-attribution'
 
-function SearchBarFallback() {
-  return (
-    <div className="flex w-full max-w-2xl items-center gap-2">
-      <div className="h-14 flex-1 rounded-xl" style={{ backgroundColor: '#38342f', border: '1px solid #4a4440' }} />
-      <div className="h-14 w-24 rounded-xl" style={{ backgroundColor: '#C06B45', opacity: 0.7 }} />
-    </div>
-  )
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type TrendingPattern = {
+  id: number
+  name: string
+  permalink: string
+  designer: { name: string } | null
+  difficulty_average: number | null
+  yarn_weight_description: string | null
+  min_yardage_required: number | null
+  free: boolean
+  first_photo: { medium_url: string } | null
 }
 
-const patterns = [
-  {
-    id: 1,
-    name: 'Autumn Cable Sweater',
-    designer: 'WoolCraft Co.',
-    difficulty: 'Intermediate',
-    yardage: '1,200 yds',
-    weight: 'Worsted',
-    swatch: '#8B4513',
-    swatchLight: '#A0522D',
-  },
-  {
-    id: 2,
-    name: 'Lace Triangle Shawl',
-    designer: 'KnitStudio',
-    difficulty: 'Advanced',
-    yardage: '800 yds',
-    weight: 'Fingering',
-    swatch: '#5C4033',
-    swatchLight: '#7D5A4F',
-  },
-  {
-    id: 3,
-    name: 'Chunky Ribbed Beanie',
-    designer: 'YarnHaven',
-    difficulty: 'Beginner',
-    yardage: '150 yds',
-    weight: 'Bulky',
-    swatch: '#2D5A4F',
-    swatchLight: '#3D7A6B',
-  },
-  {
-    id: 4,
-    name: 'Fair Isle Mittens',
-    designer: 'NordicKnits',
-    difficulty: 'Intermediate',
-    yardage: '220 yds',
-    weight: 'DK',
-    swatch: '#2B4A6B',
-    swatchLight: '#3D6A9B',
-  },
-  {
-    id: 5,
-    name: 'Summer Cotton Tank',
-    designer: 'KnitStudio',
-    difficulty: 'Beginner',
-    yardage: '500 yds',
-    weight: 'Sport',
-    swatch: '#5A3E6B',
-    swatchLight: '#7A5E8B',
-  },
-  {
-    id: 6,
-    name: 'Herringbone Cardigan',
-    designer: 'WoolCraft Co.',
-    difficulty: 'Advanced',
-    yardage: '1,800 yds',
-    weight: 'Aran',
-    swatch: '#6B3A2A',
-    swatchLight: '#8B5040',
-  },
-]
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function difficultyLabel(avg: number | null): string {
+  if (avg === null) return '—'
+  if (avg < 2)  return 'Beginner'
+  if (avg < 4)  return 'Easy'
+  if (avg < 6)  return 'Intermediate'
+  if (avg < 8)  return 'Experienced'
+  return 'Expert'
+}
 
 const difficultyStyle: Record<string, string> = {
   Beginner:     'bg-emerald-900 text-emerald-300 border border-emerald-700',
+  Easy:         'bg-teal-900    text-teal-300    border border-teal-700',
   Intermediate: 'bg-amber-900   text-amber-300   border border-amber-700',
-  Advanced:     'bg-rose-900    text-rose-300    border border-rose-700',
+  Experienced:  'bg-rose-900    text-rose-300    border border-rose-700',
+  Expert:       'bg-purple-900  text-purple-300  border border-purple-700',
+  '—':          'bg-zinc-800    text-zinc-400    border border-zinc-700',
 }
+
+// ─── Ravelry fetch ────────────────────────────────────────────────────────────
+
+async function fetchTrendingPatterns(): Promise<TrendingPattern[]> {
+  const accessKey    = process.env.RAVELRY_ACCESS_KEY
+  const accessSecret = process.env.RAVELRY_ACCESS_SECRET
+  if (!accessKey || !accessSecret) return []
+
+  try {
+    const url = new URL('https://api.ravelry.com/patterns/search.json')
+    url.searchParams.set('sort', 'best')
+    url.searchParams.set('page_size', '9')
+
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${accessKey}:${accessSecret}`).toString('base64')}`,
+        Accept: 'application/json',
+      },
+      next: { revalidate: 3600 },
+    })
+
+    if (!res.ok) {
+      console.error('[fetchTrendingPatterns]', res.status)
+      return []
+    }
+    const data = await res.json()
+    return (data.patterns ?? []) as TrendingPattern[]
+  } catch (err) {
+    console.error('[fetchTrendingPatterns] threw:', err)
+    return []
+  }
+}
+
+// ─── Static data ─────────────────────────────────────────────────────────────
 
 const plans = [
   {
@@ -111,7 +103,22 @@ const plans = [
   },
 ]
 
-export default function Home() {
+// ─── Search bar fallback ──────────────────────────────────────────────────────
+
+function SearchBarFallback() {
+  return (
+    <div className="flex w-full max-w-2xl items-center gap-2">
+      <div className="h-14 flex-1 rounded-xl" style={{ backgroundColor: '#38342f', border: '1px solid #4a4440' }} />
+      <div className="h-14 w-24 rounded-xl" style={{ backgroundColor: '#C06B45', opacity: 0.7 }} />
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function Home() {
+  const trending = await fetchTrendingPatterns()
+
   return (
     <div style={{ backgroundColor: '#242220', color: '#f5f0eb', minHeight: '100vh' }}>
 
@@ -121,28 +128,24 @@ export default function Home() {
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="relative overflow-hidden px-4 py-16 text-center sm:px-6 sm:py-28"
                style={{ backgroundColor: '#242220' }}>
-        {/* Warm glow behind headline */}
         <div className="pointer-events-none absolute inset-0"
              style={{
                background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(192,107,69,0.22) 0%, transparent 70%)',
              }} />
 
         <div className="relative mx-auto max-w-3xl">
-          {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm"
                style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#c4b8ae' }}>
             <span style={{ color: '#C06B45' }}>✦</span>
             Over 40,000 patterns and counting
           </div>
 
-          {/* Headline */}
           <h1 className="mb-5 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-tight"
               style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
             Find your next<br />
             <em style={{ color: '#C06B45', fontStyle: 'italic' }}>beautiful make</em>
           </h1>
 
-          {/* Subheading */}
           <p className="mb-10 text-lg" style={{ color: '#b0a49a' }}>
             Search thousands of knitting patterns, match your yarn stash,<br className="hidden sm:block" />
             and track every project — all in one place.
@@ -155,7 +158,7 @@ export default function Home() {
           </div>
 
           <p className="mt-4 text-sm" style={{ color: '#7a6e67' }}>
-            Try "cozy sweater", "lace weight shawl", or "beginner socks"
+            Try &quot;cozy sweater&quot;, &quot;lace weight shawl&quot;, or &quot;beginner socks&quot;
           </p>
         </div>
       </section>
@@ -168,52 +171,120 @@ export default function Home() {
               <h2 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>Trending patterns</h2>
               <p className="mt-1" style={{ color: '#b0a49a' }}>What makers are knitting right now</p>
             </div>
-            <Link href="#" className="text-sm font-medium transition-colors"
+            <Link href="/search?sort=popularity&q=knitting"
+                  className="text-sm font-medium transition-colors"
                   style={{ color: '#C06B45' }}>
               View all →
             </Link>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {patterns.map((pattern) => (
-              <div key={pattern.id}
-                   className="group cursor-pointer rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
-                   style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}>
+          {trending.length === 0 ? (
+            <p className="text-center py-12" style={{ color: '#7a6e67' }}>
+              Unable to load trending patterns right now. Try searching above.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {trending.map((pattern) => {
+                  const difficulty = difficultyLabel(pattern.difficulty_average)
+                  return (
+                    <div
+                      key={pattern.id}
+                      className="group flex flex-col rounded-2xl overflow-hidden transition-transform hover:-translate-y-1"
+                      style={{ backgroundColor: '#2e2b28', border: '1px solid #3a3530' }}
+                    >
+                      {/* Photo */}
+                      <div className="relative w-full overflow-hidden" style={{ height: '180px' }}>
+                        {pattern.first_photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={pattern.first_photo.medium_url}
+                            alt={pattern.name}
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                              opacity: 0.7,
+                            }}
+                          />
+                        )}
+                        <SaveButton
+                          patternId={pattern.id}
+                          patternName={pattern.name}
+                          designerName={pattern.designer?.name ?? null}
+                          permalink={pattern.permalink}
+                          photoUrl={pattern.first_photo?.medium_url ?? null}
+                          yardageRequired={pattern.min_yardage_required}
+                          yarnWeight={pattern.yarn_weight_description}
+                        />
+                      </div>
 
-                {/* Swatch thumbnail */}
-                <div className="h-44 flex items-center justify-center relative overflow-hidden"
-                     style={{ backgroundColor: pattern.swatch }}>
-                  {/* Knit texture suggestion */}
-                  <div className="absolute inset-0 opacity-30"
-                       style={{
-                         backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(0,0,0,0.15) 6px, rgba(0,0,0,0.15) 7px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.08) 10px, rgba(0,0,0,0.08) 11px)`,
-                       }} />
-                  <span className="relative text-3xl opacity-60">🧶</span>
-                </div>
+                      {/* Card body */}
+                      <div className="flex flex-1 flex-col p-5 gap-3">
+                        <div>
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
+                              {pattern.name}
+                            </h3>
+                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${difficultyStyle[difficulty]}`}>
+                              {difficulty}
+                            </span>
+                          </div>
+                          {pattern.designer && (
+                            <p className="mt-0.5 text-sm" style={{ color: '#9a8e87' }}>
+                              by {pattern.designer.name}
+                            </p>
+                          )}
+                        </div>
 
-                {/* Card body */}
-                <div className="p-5">
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <h3 className="font-semibold leading-snug transition-colors"
-                        style={{ color: '#f5f0eb' }}>
-                      {pattern.name}
-                    </h3>
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${difficultyStyle[pattern.difficulty]}`}>
-                      {pattern.difficulty}
-                    </span>
-                  </div>
-                  <p className="mb-3 text-sm" style={{ color: '#9a8e87' }}>
-                    by {pattern.designer}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs" style={{ color: '#7a6e67' }}>
-                    <span>{pattern.weight}</span>
-                    <span style={{ color: '#4a4440' }}>·</span>
-                    <span>{pattern.yardage}</span>
-                  </div>
-                </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          {pattern.yarn_weight_description && (
+                            <span
+                              className="rounded-full px-2.5 py-0.5"
+                              style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#c4b8ae' }}
+                            >
+                              {pattern.yarn_weight_description}
+                            </span>
+                          )}
+                          {pattern.min_yardage_required != null && (
+                            <span
+                              className="rounded-full px-2.5 py-0.5"
+                              style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#9a8e87' }}
+                            >
+                              ~{pattern.min_yardage_required.toLocaleString()} yds
+                            </span>
+                          )}
+                          {pattern.free && (
+                            <span
+                              className="rounded-full px-2.5 py-0.5 font-medium"
+                              style={{ backgroundColor: '#1a3a2a', border: '1px solid #2a5a3a', color: '#6dcfa0' }}
+                            >
+                              Free
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-auto pt-2">
+                          <Link
+                            href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ravelry-link block rounded-lg py-2 text-center text-sm font-semibold transition-colors text-white"
+                          >
+                            View on Ravelry →
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+              <RavelryFooter />
+            </>
+          )}
         </div>
       </section>
 
@@ -222,7 +293,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>Simple pricing</h2>
-            <p className="mt-2" style={{ color: '#b0a49a' }}>Start free, upgrade when you're ready</p>
+            <p className="mt-2" style={{ color: '#b0a49a' }}>Start free, upgrade when you&apos;re ready</p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
