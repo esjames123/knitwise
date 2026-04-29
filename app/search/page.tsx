@@ -279,7 +279,7 @@ export default async function SearchPage({
         {/* No query yet */}
         {!filters.query && (
           <p className="text-center text-lg" style={{ color: '#9a8e87' }}>
-            Type something above to search thousands of patterns.
+            Type something above to search thousands of patterns. Try a favorite designer name, a project type like &ldquo;cabled beanie hat,&rdquo; or a yarn weight like &ldquo;worsted weight.&rdquo; An advanced search panel will open after your search to refine your results.
           </p>
         )}
 
