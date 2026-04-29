@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 // ─── Filter data ──────────────────────────────────────────────────────────────
 
@@ -144,6 +145,17 @@ export default function FilterSidebar() {
     difficulty: true, rating: true, sizes: false, yardage: false, needle: false,
   })
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user.id ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUserId(session?.user.id ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Lock body scroll when mobile overlay is open
   useEffect(() => {
@@ -182,22 +194,24 @@ export default function FilterSidebar() {
     router.push(`/search?${p.toString()}`)
   }
 
-  const crafts   = getMulti('craft')
-  const weights  = getMulti('weight')
-  const diffs    = getMulti('difficulty')
-  const types    = getMulti('type')
-  const sizes    = getMulti('sizes')
-  const yardages = getMulti('yardage')
-  const needles  = getMulti('needle')
-  const price    = getParam('price')
-  const sort     = getParam('sort') || 'popularity'
-  const rating   = getParam('rating')
+  const crafts    = getMulti('craft')
+  const weights   = getMulti('weight')
+  const diffs     = getMulti('difficulty')
+  const types     = getMulti('type')
+  const sizes     = getMulti('sizes')
+  const yardages  = getMulti('yardage')
+  const needles   = getMulti('needle')
+  const price     = getParam('price')
+  const sort      = getParam('sort') || 'popularity'
+  const rating    = getParam('rating')
+  const favorites = getParam('favorites')
 
   const activeFilterCount =
     crafts.length + weights.length + diffs.length + types.length +
     sizes.length + yardages.length + needles.length +
     (price ? 1 : 0) + (rating ? 1 : 0) +
-    (sort && sort !== 'popularity' ? 1 : 0)
+    (sort && sort !== 'popularity' ? 1 : 0) +
+    (favorites === '1' ? 1 : 0)
 
   const hasFilters = activeFilterCount > 0
 
@@ -212,6 +226,20 @@ export default function FilterSidebar() {
   function filterContent() {
     return (
       <>
+        {/* Favorites — only visible when logged in */}
+        {userId && (
+          <>
+            <div className="mb-1 mt-1">
+              <CheckItem
+                label="Only show my favorite designers"
+                checked={favorites === '1'}
+                onChange={() => setParam('favorites', favorites === '1' ? '' : '1')}
+              />
+            </div>
+            {divider}
+          </>
+        )}
+
         {/* Sort By */}
         <SectionHeader label="Sort by" open={open.sort} onToggle={() => toggle('sort')} />
         {open.sort && (
