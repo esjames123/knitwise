@@ -323,6 +323,43 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ── Mission ───────────────────────────────────────────── */}
+      <section className="px-4 py-16 sm:px-6 sm:py-24" style={{ backgroundColor: '#1e1c1a' }}>
+        <div className="mx-auto max-w-2xl text-center">
+
+          <div className="mb-6 text-3xl">🧶</div>
+
+          <h2
+            className="mb-6 text-2xl font-bold sm:text-3xl"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}
+          >
+            Why is Knitwise only{' '}
+            <em style={{ color: '#C06B45', fontStyle: 'italic' }}>$5?</em>
+          </h2>
+
+          <div className="space-y-4 text-base leading-relaxed" style={{ color: '#b0a49a' }}>
+            <p>
+              As a longtime fiber artist and tech enthusiast, I wanted to build the fiber arts
+              project management app of my dreams — one that truly serves our community.
+            </p>
+            <p>
+              The $5 download helps offset the time and money spent developing and hosting
+              Knitwise, but there&apos;s no subscription fee, ever. No ads. No hidden costs.
+            </p>
+            <p>
+              Knitwise exists to celebrate and support the small farms, fiber artists, small
+              businesses, and content creators who keep the ancient craft of sustainable fiber
+              arts alive.
+            </p>
+            <p style={{ color: '#c4b8ae' }}>
+              If you love what we&apos;re building, share Knitwise with your fiber arts friends.
+              Let&apos;s grow this mission together.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
       {/* ── Footer ────────────────────────────────────────────── */}
       <footer className="px-6 py-10 text-center text-sm"
               style={{ borderTop: '1px solid #3a3530', backgroundColor: '#1e1c1a', color: '#7a6e67' }}>
