@@ -54,38 +54,6 @@ async function fetchTrendingPatterns(): Promise<TrendingPattern[]> {
   }
 }
 
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '',
-    description: 'Perfect for casual knitters',
-    features: ['10 saved patterns', 'Basic yarn tracker', 'Community access', 'Pattern search'],
-    featured: false,
-    cta: 'Get started',
-  },
-  {
-    name: 'Maker',
-    price: '$6',
-    period: '/mo',
-    description: 'For the dedicated maker',
-    features: ['Unlimited pattern saves', 'Smart yarn matching', 'Project timeline tools', 'Stash management', 'Priority support'],
-    featured: true,
-    cta: 'Start free trial',
-  },
-  {
-    name: 'Studio',
-    price: '$14',
-    period: '/mo',
-    description: 'For designers & shops',
-    features: ['Everything in Maker', 'Pattern publishing', 'Sales analytics', 'Custom shop page', 'Wholesale tools'],
-    featured: false,
-    cta: 'Start free trial',
-  },
-]
-
 // ─── Search bar fallback ──────────────────────────────────────────────────────
 
 function SearchBarFallback() {
@@ -262,64 +230,6 @@ export default async function Home() {
               <RavelryFooter />
             </>
           )}
-        </div>
-      </section>
-
-      {/* ── Pricing ───────────────────────────────────────────── */}
-      <section className="px-4 py-16 sm:px-6 sm:py-20" style={{ borderTop: '1px solid #3a3530', backgroundColor: '#1e1c1a' }}>
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold" style={{ color: '#f5f0eb' }}>Simple pricing</h2>
-            <p className="mt-2" style={{ color: '#b0a49a' }}>Start free, upgrade when you&apos;re ready</p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {plans.map((plan) => (
-              <div key={plan.name}
-                   className="relative rounded-2xl p-7"
-                   style={plan.featured
-                     ? { backgroundColor: '#3a2218', border: '2px solid #C06B45' }
-                     : { backgroundColor: '#2a2724', border: '1px solid #3a3530' }}>
-
-                {plan.featured && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                          style={{ backgroundColor: '#C06B45' }}>
-                      Most popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="mb-5">
-                  <h3 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>{plan.name}</h3>
-                  <p className="mt-0.5 text-sm" style={{ color: '#9a8e87' }}>{plan.description}</p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold" style={{ color: '#f5f0eb' }}>{plan.price}</span>
-                    {plan.period && (
-                      <span style={{ color: '#9a8e87' }}>{plan.period}</span>
-                    )}
-                  </div>
-                </div>
-
-                <ul className="mb-7 space-y-2.5">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2.5 text-sm" style={{ color: '#c4b8ae' }}>
-                      <span className="font-bold" style={{ color: '#C06B45' }}>✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <Link href="#"
-                      className="block rounded-xl py-3 text-center text-sm font-semibold transition-colors text-white"
-                      style={plan.featured
-                        ? { backgroundColor: '#C06B45' }
-                        : { backgroundColor: '#38342f', border: '1px solid #4a4440' }}>
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
