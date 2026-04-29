@@ -36,7 +36,8 @@ export default function Nav() {
   }
 
   const publicLinks = [
-    { href: '/search', label: 'Explore' },
+    { href: '/search',    label: 'Explore'    },
+    { href: '/community', label: 'Community'  },
   ]
   const authLinks = [
     { href: '/library', label: 'My Library' },
