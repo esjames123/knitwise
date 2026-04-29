@@ -21,19 +21,6 @@ type TrendingPattern = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function difficultyLabel(avg: number | null): string {
-  if (avg === null) return '—'
-  if (avg < 4) return 'Beginner'
-  if (avg < 7) return 'Intermediate'
-  return 'Advanced'
-}
-
-const difficultyStyle: Record<string, string> = {
-  Beginner:     'bg-emerald-900 text-emerald-300 border border-emerald-700',
-  Intermediate: 'bg-amber-900   text-amber-300   border border-amber-700',
-  Advanced:     'bg-rose-900    text-rose-300    border border-rose-700',
-  '—':          'bg-zinc-800    text-zinc-400    border border-zinc-700',
-}
 
 // ─── Ravelry fetch ────────────────────────────────────────────────────────────
 
@@ -182,7 +169,6 @@ export default async function Home() {
             <>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {trending.map((pattern) => {
-                  const difficulty = difficultyLabel(pattern.difficulty_average)
                   return (
                     <div
                       key={pattern.id}
@@ -221,14 +207,9 @@ export default async function Home() {
                       {/* Card body */}
                       <div className="flex flex-1 flex-col p-5 gap-3">
                         <div>
-                          <div className="flex items-start justify-between gap-3">
-                            <h3 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
-                              {pattern.name}
-                            </h3>
-                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${difficultyStyle[difficulty]}`}>
-                              {difficulty}
-                            </span>
-                          </div>
+                          <h3 className="font-semibold leading-snug" style={{ color: '#f5f0eb' }}>
+                            {pattern.name}
+                          </h3>
                           {pattern.designer && (
                             <p className="mt-0.5 text-sm" style={{ color: '#9a8e87' }}>
                               by {pattern.designer.name}

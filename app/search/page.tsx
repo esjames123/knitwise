@@ -230,21 +230,6 @@ async function searchRavelry(filters: SearchFilters): Promise<RavelryResponse> {
   return res.json()
 }
 
-// ─── Difficulty badge helpers ─────────────────────────────────────────────────
-
-function difficultyLabel(avg: number | null): string {
-  if (avg === null) return '—'
-  if (avg < 4) return 'Beginner'
-  if (avg < 7) return 'Intermediate'
-  return 'Advanced'
-}
-
-const difficultyStyle: Record<string, string> = {
-  Beginner:     'bg-emerald-900 text-emerald-300 border border-emerald-700',
-  Intermediate: 'bg-amber-900   text-amber-300   border border-amber-700',
-  Advanced:     'bg-rose-900    text-rose-300    border border-rose-700',
-  '—':          'bg-zinc-800    text-zinc-400    border border-zinc-700',
-}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -361,7 +346,6 @@ export default async function SearchPage({
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {data.patterns.map((pattern) => {
-                        const difficulty = difficultyLabel(pattern.difficulty_average)
                         return (
                           <div
                             key={pattern.id}
@@ -412,9 +396,6 @@ export default async function SearchPage({
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2 text-xs">
-                                <span className={`rounded-full px-2.5 py-0.5 font-medium ${difficultyStyle[difficulty]}`}>
-                                  {difficulty}
-                                </span>
                                 {pattern.yarn_weight_description && (
                                   <span
                                     className="rounded-full px-2.5 py-0.5"
