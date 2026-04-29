@@ -230,23 +230,19 @@ async function searchRavelry(filters: SearchFilters): Promise<RavelryResponse> {
   return res.json()
 }
 
-// ─── Difficulty badge helpers (unchanged) ─────────────────────────────────────
+// ─── Difficulty badge helpers ─────────────────────────────────────────────────
 
 function difficultyLabel(avg: number | null): string {
   if (avg === null) return '—'
-  if (avg < 2)  return 'Beginner'
-  if (avg < 4)  return 'Easy'
-  if (avg < 6)  return 'Intermediate'
-  if (avg < 8)  return 'Experienced'
-  return 'Expert'
+  if (avg < 4) return 'Beginner'
+  if (avg < 7) return 'Intermediate'
+  return 'Advanced'
 }
 
 const difficultyStyle: Record<string, string> = {
   Beginner:     'bg-emerald-900 text-emerald-300 border border-emerald-700',
-  Easy:         'bg-teal-900    text-teal-300    border border-teal-700',
   Intermediate: 'bg-amber-900   text-amber-300   border border-amber-700',
-  Experienced:  'bg-rose-900    text-rose-300    border border-rose-700',
-  Expert:       'bg-purple-900  text-purple-300  border border-purple-700',
+  Advanced:     'bg-rose-900    text-rose-300    border border-rose-700',
   '—':          'bg-zinc-800    text-zinc-400    border border-zinc-700',
 }
 
