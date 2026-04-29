@@ -267,6 +267,13 @@ export default async function Home() {
             </p>
           </div>
 
+          <p
+            className="mt-8 text-sm italic"
+            style={{ color: '#7a6e67', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
+          >
+            — Erin James of Feral Scene LLC
+          </p>
+
         </div>
       </section>
 
