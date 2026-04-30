@@ -1109,6 +1109,10 @@ export default function LibraryPage() {
                   <p className="mb-4 text-xs" style={{ color: '#e0a090' }}>{designerError}</p>
                 )}
 
+                <p className="mb-5 text-xs leading-relaxed" style={{ color: '#7a6e67' }}>
+                  Search your favorite designers by name and save them here. Click on a designer&rsquo;s name to view all of their patterns. Add patterns to your library to use the &ldquo;Only show patterns from my library&rdquo; filter in Explore for advanced searches.
+                </p>
+
                 {designers.length === 0 ? (
                   <p className="text-sm" style={{ color: '#5a504a' }}>No favorite designers yet. Add one above.</p>
                 ) : (
