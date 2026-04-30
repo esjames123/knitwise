@@ -36,6 +36,10 @@ export function buildActiveChips(
 
   const chips: ChipDef[] = []
 
+  if (raw('favorites') === '1') {
+    chips.push({ label: 'My favorite designers', removeUrl: without('favorites') })
+  }
+
   const sortVal = raw('sort')
   const sortLabels: Record<string, string> = {
     date: 'Sort: Newest',

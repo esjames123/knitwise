@@ -43,26 +43,42 @@ export function PatternGrid({ patterns }: Props) {
     let cancelled = false
     setFavLoading(true)
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session || cancelled) { setFavLoading(false); return }
-      const { data } = await supabase
-        .from('favorite_designers')
-        .select('designer_name')
-        .eq('user_id', session.user.id)
-      if (!cancelled) {
-        setFavoriteNames(new Set((data ?? []).map((r: { designer_name: string }) => r.designer_name)))
+      let session = null
+      try {
+        const { data } = await supabase.auth.getSession()
+        session = data.session
+      } catch {
+        // auth unavailable — treat as logged out
+      }
+      if (cancelled) return
+      if (!session) {
+        setFavoriteNames(new Set())
         setFavLoading(false)
+        return
+      }
+      try {
+        const { data } = await supabase
+          .from('favorite_designers')
+          .select('designer_name')
+          .eq('user_id', session.user.id)
+        if (!cancelled) {
+          setFavoriteNames(new Set((data ?? []).map((r: { designer_name: string }) => r.designer_name)))
+        }
+      } catch {
+        if (!cancelled) setFavoriteNames(new Set())
+      } finally {
+        if (!cancelled) setFavLoading(false)
       }
     }
     load()
     return () => { cancelled = true }
   }, [onlyFavorites])
 
-  const displayed = onlyFavorites && favoriteNames != null
-    ? patterns.filter(p => p.designer && favoriteNames.has(p.designer.name))
-    : patterns
+  if (patterns && patterns.length > 0) {
+    console.log('First pattern:', JSON.stringify(patterns[0], null, 2))
+  }
 
-  if (favLoading) {
+  if (favLoading || (onlyFavorites && favoriteNames === null)) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[1, 2, 3].map(i => (
@@ -72,6 +88,10 @@ export function PatternGrid({ patterns }: Props) {
       </div>
     )
   }
+
+  const displayed = onlyFavorites && favoriteNames != null
+    ? patterns.filter(p => p.designer && favoriteNames.has(p.designer.name))
+    : patterns
 
   if (displayed.length === 0) {
     return (
