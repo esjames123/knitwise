@@ -62,7 +62,7 @@ export function PatternGrid({ patterns }: Props) {
           .select('designer_name')
           .eq('user_id', session.user.id)
         if (!cancelled) {
-          setFavoriteNames(new Set((data ?? []).map((r: { designer_name: string }) => r.designer_name)))
+          setFavoriteNames(new Set((data ?? []).map((r: { designer_name: string }) => r.designer_name.toLowerCase())))
         }
       } catch {
         if (!cancelled) setFavoriteNames(new Set())
@@ -90,7 +90,7 @@ export function PatternGrid({ patterns }: Props) {
   }
 
   const displayed = onlyFavorites && favoriteNames != null
-    ? patterns.filter(p => p.designer && favoriteNames.has(p.designer.name))
+    ? patterns.filter(p => p.designer && favoriteNames.has(p.designer.name.toLowerCase()))
     : patterns
 
   if (displayed.length === 0) {
