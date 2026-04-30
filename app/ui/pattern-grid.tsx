@@ -7,22 +7,9 @@ import SaveButton from '@/app/ui/save-button'
 import { DesignerPopover } from '@/app/ui/designer-popover'
 import { RavelryCardCredit, RavelryFooter } from '@/app/ui/ravelry-attribution'
 import { supabase } from '@/lib/supabase'
+import type { RavelryPattern } from '@/app/lib/ravelry-search'
 
-export type RavelryPattern = {
-  id: number
-  name: string
-  permalink: string
-  designer: { name: string } | null
-  difficulty_average: number | null
-  yarn_weight_description: string | null
-  min_yardage_required: number | null
-  max_yardage_required: number | null
-  free: boolean
-  first_photo: {
-    square_url: string
-    medium_url: string
-  } | null
-}
+export type { RavelryPattern }
 
 type Props = {
   patterns: RavelryPattern[]
@@ -32,53 +19,69 @@ export function PatternGrid({ patterns }: Props) {
   const searchParams = useSearchParams()
   const onlyFavorites = searchParams.get('favorites') === '1'
 
-  const [favoriteNames, setFavoriteNames] = useState<Set<string> | null>(null)
-  const [favLoading, setFavLoading] = useState(false)
+  const [apiPatterns, setApiPatterns] = useState<RavelryPattern[] | null>(null)
+  const [apiLoading, setApiLoading]   = useState(false)
+  const [apiError, setApiError]       = useState<string | null>(null)
+
+  const paramsStr = searchParams.toString()
 
   useEffect(() => {
     if (!onlyFavorites) {
-      setFavoriteNames(null)
+      setApiPatterns(null)
+      setApiLoading(false)
+      setApiError(null)
       return
     }
+
     let cancelled = false
-    setFavLoading(true)
+    setApiLoading(true)
+    setApiError(null)
+
     async function load() {
-      let session = null
+      let token: string | null = null
       try {
         const { data } = await supabase.auth.getSession()
-        session = data.session
-      } catch {
-        // auth unavailable — treat as logged out
-      }
+        token = data.session?.access_token ?? null
+      } catch { /* auth unavailable */ }
+
       if (cancelled) return
-      if (!session) {
-        setFavoriteNames(new Set())
-        setFavLoading(false)
+
+      if (!token) {
+        setApiPatterns([])
+        setApiLoading(false)
         return
       }
+
       try {
-        const { data } = await supabase
-          .from('favorite_designers')
-          .select('designer_name')
-          .eq('user_id', session.user.id)
+        const res = await fetch(`/api/search?${paramsStr}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) throw new Error(`Search API returned ${res.status}`)
+        const data = await res.json()
         if (!cancelled) {
-          setFavoriteNames(new Set((data ?? []).map((r: { designer_name: string }) => r.designer_name.toLowerCase())))
+          setApiPatterns(data.patterns ?? [])
         }
-      } catch {
-        if (!cancelled) setFavoriteNames(new Set())
+      } catch (err) {
+        if (!cancelled) {
+          setApiError(err instanceof Error ? err.message : 'Search failed.')
+          setApiPatterns([])
+        }
       } finally {
-        if (!cancelled) setFavLoading(false)
+        if (!cancelled) setApiLoading(false)
       }
     }
+
     load()
     return () => { cancelled = true }
-  }, [onlyFavorites])
+  }, [onlyFavorites, paramsStr]) // re-fetch when favorites toggled or any other filter changes
 
   if (patterns && patterns.length > 0) {
     console.log('First pattern:', JSON.stringify(patterns[0], null, 2))
   }
 
-  if (favLoading || (onlyFavorites && favoriteNames === null)) {
+  const displayed = onlyFavorites ? (apiPatterns ?? []) : patterns
+
+  if (apiLoading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[1, 2, 3].map(i => (
@@ -89,9 +92,14 @@ export function PatternGrid({ patterns }: Props) {
     )
   }
 
-  const displayed = onlyFavorites && favoriteNames != null
-    ? patterns.filter(p => p.designer && favoriteNames.has(p.designer.name.toLowerCase()))
-    : patterns
+  if (apiError) {
+    return (
+      <div className="rounded-xl px-6 py-4 text-center text-sm"
+           style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}>
+        {apiError}
+      </div>
+    )
+  }
 
   if (displayed.length === 0) {
     return (
