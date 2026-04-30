@@ -7,12 +7,12 @@ export async function GET(request: Request) {
 
   const query     = searchParams.get('q')?.trim() || ''
   const sort      = searchParams.get('sort')?.trim() || 'popularity'
-  const favorites = searchParams.get('favorites') || '0'
+  const library = searchParams.get('library') || '0'
 
   console.log('[/api/search] Starting with params:', {
     query,
     sort,
-    favorites,
+    library,
     craft:      searchParams.get('craft'),
     weight:     searchParams.get('weight'),
     difficulty: searchParams.get('difficulty'),
@@ -57,14 +57,14 @@ export async function GET(request: Request) {
     return Response.json(ravelryData, { status: 502 })
   }
 
-  // ── 2. No favorites filter — return Ravelry results as-is ─────────────────
-  if (favorites !== '1') {
-    console.log('[/api/search] No favorites filter — returning all', ravelryData.patterns.length, 'patterns')
+  // ── 2. No library filter — return Ravelry results as-is ──────────────────
+  if (library !== '1') {
+    console.log('[/api/search] No library filter — returning all', ravelryData.patterns.length, 'patterns')
     return Response.json(ravelryData)
   }
 
   // ── 3. Authenticate ────────────────────────────────────────────────────────
-  console.log('[/api/search] Favorites filter ON — authenticating...')
+  console.log('[/api/search] Library filter ON — authenticating...')
   const authHeader = request.headers.get('authorization')
   console.log('[/api/search] Authorization header present:', !!authHeader)
 
@@ -82,39 +82,31 @@ export async function GET(request: Request) {
     return Response.json(ravelryData)
   }
 
-  // ── 4. Fetch favorites ─────────────────────────────────────────────────────
-  console.log('[/api/search] Fetching favorite_designers for user:', auth.user.id)
-  let favoriteNames: Set<string>
+  // ── 4. Fetch saved pattern IDs ─────────────────────────────────────────────
+  console.log('[/api/search] Fetching saved_patterns for user:', auth.user.id)
+  let savedIds: Set<number>
   try {
     const { data, error } = await auth.client
-      .from('favorite_designers')
-      .select('designer_name')
+      .from('saved_patterns')
+      .select('pattern_id')
       .eq('user_id', auth.user.id)
 
-    console.log('[/api/search] favorite_designers raw response — data:', JSON.stringify(data), 'error:', JSON.stringify(error))
+    console.log('[/api/search] saved_patterns raw response — data:', JSON.stringify(data), 'error:', JSON.stringify(error))
 
     if (error) {
-      console.error('[/api/search] favorite_designers query error:', error.message, '| code:', error.code, '| hint:', error.hint)
+      console.error('[/api/search] saved_patterns query error:', error.message, '| code:', error.code, '| hint:', error.hint)
       return Response.json(ravelryData)
     }
 
-    favoriteNames = new Set(
-      (data ?? []).map((r: { designer_name: string }) => r.designer_name.toLowerCase())
-    )
-    console.log('[/api/search] User favorites:', [...favoriteNames])
+    savedIds = new Set((data ?? []).map((r: { pattern_id: number }) => r.pattern_id))
+    console.log('[/api/search] User has', savedIds.size, 'saved patterns')
   } catch (err) {
-    console.error('[/api/search] favorite_designers fetch threw:', err)
+    console.error('[/api/search] saved_patterns fetch threw:', err)
     return Response.json(ravelryData)
   }
 
   // ── 5. Filter ──────────────────────────────────────────────────────────────
-  console.log('[/api/search] Filtering with:', [...favoriteNames])
-  const filtered = ravelryData.patterns.filter(p => {
-    if (!p.designer?.name) return false
-    const match = favoriteNames.has(p.designer.name.toLowerCase())
-    console.log('[/api/search]', match ? '✓' : '✗', `"${p.designer.name}"`)
-    return match
-  })
+  const filtered = ravelryData.patterns.filter(p => savedIds.has(p.id))
 
   console.log(`[/api/search] Done — ${ravelryData.patterns.length} → ${filtered.length} patterns after filter`)
 

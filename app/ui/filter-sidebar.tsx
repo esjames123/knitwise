@@ -204,14 +204,14 @@ export default function FilterSidebar() {
   const price     = getParam('price')
   const sort      = getParam('sort') || 'popularity'
   const rating    = getParam('rating')
-  const favorites = getParam('favorites')
+  const library = getParam('library')
 
   const activeFilterCount =
     crafts.length + weights.length + diffs.length + types.length +
     sizes.length + yardages.length + needles.length +
     (price ? 1 : 0) + (rating ? 1 : 0) +
     (sort && sort !== 'popularity' ? 1 : 0) +
-    (favorites === '1' ? 1 : 0)
+    (library === '1' ? 1 : 0)
 
   const hasFilters = activeFilterCount > 0
 
@@ -226,14 +226,14 @@ export default function FilterSidebar() {
   function filterContent() {
     return (
       <>
-        {/* Favorites — only visible when logged in */}
+        {/* Library filter — only visible when logged in */}
         {userId && (
           <>
             <div className="mb-1 mt-1">
               <CheckItem
-                label="Only show my favorite designers"
-                checked={favorites === '1'}
-                onChange={() => setParam('favorites', favorites === '1' ? '' : '1')}
+                label="Only show patterns from my library"
+                checked={library === '1'}
+                onChange={() => setParam('library', library === '1' ? '' : '1')}
               />
             </div>
             {divider}

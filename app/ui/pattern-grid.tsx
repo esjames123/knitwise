@@ -17,7 +17,7 @@ type Props = {
 
 export function PatternGrid({ patterns }: Props) {
   const searchParams = useSearchParams()
-  const onlyFavorites = searchParams.get('favorites') === '1'
+  const onlyFavorites = searchParams.get('library') === '1'
 
   const [apiPatterns, setApiPatterns] = useState<RavelryPattern[] | null>(null)
   const [apiLoading, setApiLoading]   = useState(false)
@@ -105,7 +105,7 @@ export function PatternGrid({ patterns }: Props) {
     return (
       <p className="text-center" style={{ color: '#9a8e87' }}>
         {onlyFavorites
-          ? 'No patterns found from your favorite designers. Try turning off the favorites filter.'
+          ? 'None of your saved patterns match this search. Try adjusting your search term or turning off the library filter.'
           : 'No patterns found. Try adjusting your filters or search term.'}
       </p>
     )
