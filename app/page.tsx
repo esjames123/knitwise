@@ -98,8 +98,9 @@ export default async function Home() {
           </h1>
 
           <p className="mb-10 text-lg" style={{ color: '#b0a49a' }}>
-            Search thousands of knitting patterns, match your yarn stash,<br className="hidden sm:block" />
-            and track every project — all in one place.
+            Find your next beautiful make. Explore knitting, crochet, weaving and spinning patterns and projects.<br className="hidden sm:block" />
+            Match your yarn, track projects, discover local groups and farms, share resources with your fiber community,<br className="hidden sm:block" />
+            and support sustainable fiber arts — all in one place.
           </p>
 
           <div className="flex justify-center">
