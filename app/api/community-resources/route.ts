@@ -43,6 +43,24 @@ async function fetchOgImage(url: string): Promise<string | null> {
   }
 }
 
+function extractYouTubeThumbnail(url: string): string | null {
+  let videoId: string | null = null
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'youtu.be') {
+      videoId = u.pathname.slice(1).split('?')[0] || null
+    } else if (u.hostname.includes('youtube.com')) {
+      videoId = u.searchParams.get('v')
+      if (!videoId) {
+        // handle /shorts/ID and /embed/ID paths
+        const m = u.pathname.match(/\/(?:shorts|embed|v)\/([^/?]+)/)
+        if (m) videoId = m[1]
+      }
+    }
+  } catch { /* invalid URL — fall through */ }
+  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null
+}
+
 const VALID_CATEGORIES = [
   'beginner_knitting','crochet','weaving','spinning','felting','dyeing','other',
 ] as const
@@ -111,7 +129,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'You have already shared this link.' }, { status: 409 })
   }
 
-  const image_url = await fetchOgImage((link as string).trim())
+  const image_url = extractYouTubeThumbnail((link as string).trim()) ?? await fetchOgImage((link as string).trim())
   const str = (v: unknown) => typeof v === 'string' ? v.trim() || null : null
 
   const { data, error } = await auth.client
