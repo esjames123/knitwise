@@ -79,7 +79,10 @@ export async function searchRavelry(filters: SearchFilters): Promise<RavelrySear
   const accessKey    = process.env.RAVELRY_ACCESS_KEY
   const accessSecret = process.env.RAVELRY_ACCESS_SECRET
 
+  console.log('[Ravelry] searchRavelry called — RAVELRY_ACCESS_KEY present:', !!accessKey, '| RAVELRY_ACCESS_SECRET present:', !!accessSecret)
+
   if (!accessKey || !accessSecret) {
+    console.error('[Ravelry] Missing credentials — set RAVELRY_ACCESS_KEY and RAVELRY_ACCESS_SECRET')
     return { patterns: [], paginator: { results: 0 }, error: 'Ravelry API credentials are not configured.' }
   }
 

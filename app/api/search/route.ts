@@ -3,6 +3,7 @@ import { searchRavelry } from '@/app/lib/ravelry-search'
 import type { SearchFilters } from '@/app/lib/ravelry-search'
 
 export async function GET(request: Request) {
+  console.log('[/api/search] ▶ Route handler entered')
   const { searchParams } = new URL(request.url)
 
   const query     = searchParams.get('q')?.trim() || ''
