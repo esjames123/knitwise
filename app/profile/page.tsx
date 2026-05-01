@@ -7,6 +7,7 @@ import Nav from '@/app/ui/nav'
 import { supabase } from '@/lib/supabase'
 import type { Group } from '@/app/ui/group-card'
 import type { FiberBusiness } from '@/app/ui/fiber-business-card'
+import type { CommunityResource } from '@/app/ui/community-resource-card'
 
 function formatDate(iso: string | undefined) {
   if (!iso) return '—'
@@ -24,8 +25,9 @@ export default function ProfilePage() {
   const [user, setUser]             = useState<any>(null)
   const [loading, setLoading]       = useState(true)
   const [savedCount, setSavedCount]   = useState<number | null>(null)
-  const [myGroups, setMyGroups]       = useState<Group[]>([])
+  const [myGroups, setMyGroups]         = useState<Group[]>([])
   const [myBusinesses, setMyBusinesses] = useState<FiberBusiness[]>([])
+  const [myResources, setMyResources]   = useState<CommunityResource[]>([])
 
   // Email update
   const [newEmail, setNewEmail]       = useState('')
@@ -42,15 +44,17 @@ export default function ProfilePage() {
       if (!session) { router.replace('/login'); return }
       if (cancelled) return
       setUser(session.user)
-      const [{ count }, { data: groups }, { data: bizData }] = await Promise.all([
+      const [{ count }, { data: groups }, { data: bizData }, { data: resourceData }] = await Promise.all([
         supabase.from('saved_patterns').select('id', { count: 'exact', head: true }).eq('user_id', session.user.id),
         supabase.from('groups').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
         supabase.from('fiber_businesses').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }),
+        supabase.from('community_resources').select('*').eq('user_id', session.user.id).eq('is_flagged', false).order('created_at', { ascending: false }),
       ])
       if (!cancelled) {
         setSavedCount(count ?? 0)
         setMyGroups((groups as Group[]) ?? [])
         setMyBusinesses((bizData as FiberBusiness[]) ?? [])
+        setMyResources((resourceData as CommunityResource[]) ?? [])
         setLoading(false)
       }
     }
@@ -125,11 +129,12 @@ export default function ProfilePage() {
         {/* Stats */}
         <div style={card}>
           <p style={sectionTitle}>Stats</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>
             {[
               { label: 'Patterns saved',    val: savedCount ?? '—' },
               { label: 'Groups posted',     val: myGroups.length },
               { label: 'Businesses listed', val: myBusinesses.length },
+              { label: 'Resources shared',  val: myResources.length },
             ].map(({ label: l, val }) => (
               <div key={l} style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', borderRadius: '0.75rem', padding: '1.25rem 1rem', textAlign: 'center' }}>
                 <span style={{ display: 'block', fontSize: '1.875rem', fontWeight: 700, color: '#C06B45' }}>{val}</span>
@@ -234,6 +239,58 @@ export default function ProfilePage() {
                       </div>
                       {loc && <p style={{ color: '#7a6e67', fontSize: '0.75rem', marginTop: '0.125rem' }}>{loc}</p>}
                       {b.about && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.about}</p>}
+                    </div>
+                    <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      View →
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Your Resources */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            <p style={sectionTitle}>Your Resources</p>
+            <Link href="/community" style={{ color: '#C06B45', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+              View all →
+            </Link>
+          </div>
+          {myResources.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+              <p style={{ color: '#7a6e67', fontSize: '0.875rem' }}>You haven&apos;t shared any resources yet.</p>
+              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#C06B45', fontSize: '0.875rem', fontWeight: 600 }}>
+                Share your first resource →
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {myResources.map((r, i) => {
+                const catLabel: Record<string, string> = {
+                  beginner_knitting: 'Beginner Knitting', crochet: 'Crochet', weaving: 'Weaving',
+                  spinning: 'Spinning', felting: 'Felting', dyeing: 'Dyeing', other: 'Other',
+                }
+                return (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', padding: '0.625rem 0', ...(i < myResources.length - 1 ? divider : {}) }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <a
+                          href={r.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#f5f0eb', fontSize: '0.875rem', fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                        >
+                          {r.title}
+                        </a>
+                        <span style={{ flexShrink: 0, backgroundColor: '#1e2a1e', border: '1px solid #3a5a3a', color: '#8abf8a', borderRadius: '9999px', padding: '0.125rem 0.5rem', fontSize: '0.7rem', fontWeight: 500 }}>
+                          {catLabel[r.category] ?? r.category}
+                        </span>
+                      </div>
+                      {r.description && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{r.description}</p>}
                     </div>
                     <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       View →

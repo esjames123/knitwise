@@ -16,6 +16,12 @@ import { CreateFiberBusinessModal } from '@/app/ui/create-fiber-business-modal'
 import type { FiberBusinessPayload } from '@/app/ui/create-fiber-business-modal'
 import { FiberBusinessDetailModal } from '@/app/ui/fiber-business-detail-modal'
 import { FlagFiberBusinessModal } from '@/app/ui/flag-fiber-business-modal'
+import { CommunityResourceCard } from '@/app/ui/community-resource-card'
+import type { CommunityResource } from '@/app/ui/community-resource-card'
+import { CreateCommunityResourceModal } from '@/app/ui/create-community-resource-modal'
+import type { CommunityResourcePayload } from '@/app/ui/create-community-resource-modal'
+import { CommunityResourceDetailModal } from '@/app/ui/community-resource-detail-modal'
+import { FlagCommunityResourceModal } from '@/app/ui/flag-community-resource-modal'
 
 export default function CommunityPage() {
   const router = useRouter()
@@ -46,6 +52,17 @@ export default function CommunityPage() {
   const [detailBiz, setDetailBiz]               = useState<FiberBusiness | null>(null)
   const [flagBiz, setFlagBiz]                   = useState<FiberBusiness | null>(null)
 
+  // Resources state
+  const [resources, setResources]               = useState<CommunityResource[]>([])
+  const [resourcesLoading, setResourcesLoading] = useState(true)
+  const [resourcesError, setResourcesError]     = useState<string | null>(null)
+  const [resourceCategory, setResourceCategory] = useState('')
+
+  // Resource modals
+  const [showCreateResource, setShowCreateResource] = useState(false)
+  const [detailResource, setDetailResource]         = useState<CommunityResource | null>(null)
+  const [flagResource, setFlagResource]             = useState<CommunityResource | null>(null)
+
   // Toast
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -66,6 +83,7 @@ export default function CommunityPage() {
     })
     fetchGroups()
     fetchBusinesses()
+    fetchResources()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchGroups(params?: { city?: string; state?: string; zip?: string }) {
@@ -136,6 +154,45 @@ export default function CommunityPage() {
       showToast('Group deleted.', true)
     } else {
       showToast('Could not delete group.', false)
+    }
+  }
+
+  async function fetchResources(category?: string) {
+    setResourcesLoading(true); setResourcesError(null)
+    const qs = new URLSearchParams()
+    if (category) qs.set('category', category)
+    const res = await fetch(`/api/community-resources?${qs.toString()}`)
+    if (res.ok) setResources(await res.json())
+    else setResourcesError('Could not load resources.')
+    setResourcesLoading(false)
+  }
+
+  async function handleCreateResource(payload: CommunityResourcePayload) {
+    if (!tokenRef.current) { router.push('/login'); return }
+    const res = await fetch('/api/community-resources', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenRef.current}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error ?? 'Could not post resource')
+    setResources(prev => [json as CommunityResource, ...prev])
+    showToast('Resource shared!', true)
+  }
+
+  async function handleDeleteResource(resource: CommunityResource) {
+    if (!tokenRef.current) return
+    if (!confirm(`Delete "${resource.title}"? This cannot be undone.`)) return
+    const res = await fetch(`/api/community-resources/${resource.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenRef.current}` },
+    })
+    if (res.ok) {
+      setResources(prev => prev.filter(r => r.id !== resource.id))
+      setDetailResource(null)
+      showToast('Resource deleted.', true)
+    } else {
+      showToast('Could not delete resource.', false)
     }
   }
 
@@ -347,6 +404,98 @@ export default function CommunityPage() {
           )}
         </section>
 
+        {/* ── Community Resources section ── */}
+        <section>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold" style={{ color: '#f5f0eb' }}>Community Resources</h2>
+              <p className="mt-1 text-sm" style={{ color: '#9a8e87' }}>
+                Share helpful videos, blogs, and tutorials for fiber arts learning. Please no spam and do not post the same link more than once.
+              </p>
+            </div>
+            <button
+              onClick={() => userId ? setShowCreateResource(true) : router.push('/login')}
+              className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: '#C06B45' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+            >
+              + Share a Resource
+            </button>
+          </div>
+
+          {/* Category filter pills */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            {[
+              { value: '',                  label: 'All' },
+              { value: 'beginner_knitting', label: 'Beginner Knitting' },
+              { value: 'crochet',           label: 'Crochet' },
+              { value: 'weaving',           label: 'Weaving' },
+              { value: 'spinning',          label: 'Spinning' },
+              { value: 'felting',           label: 'Felting' },
+              { value: 'dyeing',            label: 'Dyeing' },
+              { value: 'other',             label: 'Other' },
+            ].map(({ value, label }) => {
+              const active = resourceCategory === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => {
+                    setResourceCategory(value)
+                    fetchResources(value || undefined)
+                  }}
+                  className="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
+                  style={{
+                    backgroundColor: active ? '#C06B45' : '#38342f',
+                    border: `1px solid ${active ? '#C06B45' : '#4a4440'}`,
+                    color: active ? '#fff' : '#9a8e87',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          {resourcesLoading ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse rounded-2xl"
+                     style={{ height: 260, backgroundColor: '#2e2b28', border: '1px solid #3a3530' }} />
+              ))}
+            </div>
+          ) : resourcesError ? (
+            <div className="py-8 text-center">
+              <p className="text-sm" style={{ color: '#e0a090' }}>{resourcesError}</p>
+            </div>
+          ) : resources.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-lg font-medium" style={{ color: '#9a8e87' }}>
+                {resourceCategory ? 'No resources in that category yet.' : 'No resources shared yet.'}
+              </p>
+              <p className="mt-2 text-sm" style={{ color: '#5a504a' }}>Be the first to share a helpful resource!</p>
+            </div>
+          ) : (
+            <>
+              <p className="mb-4 text-sm" style={{ color: '#7a6e67' }}>
+                {resources.length} resource{resources.length !== 1 ? 's' : ''}
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {resources.map(r => (
+                  <CommunityResourceCard
+                    key={r.id}
+                    resource={r}
+                    isOwner={userId === r.user_id}
+                    onView={() => setDetailResource(r)}
+                    onDelete={() => handleDeleteResource(r)}
+                    onFlag={() => setFlagResource(r)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+
       </div>
 
       {/* Group modals */}
@@ -402,6 +551,34 @@ export default function CommunityPage() {
           businessId={flagBiz.id}
           onClose={() => setFlagBiz(null)}
           onFlagged={() => { showToast('Report submitted — thank you.', true); setFlagBiz(null) }}
+        />
+      )}
+
+      {/* Resource modals */}
+      {showCreateResource && (
+        <CreateCommunityResourceModal
+          onSave={handleCreateResource}
+          onClose={() => setShowCreateResource(false)}
+        />
+      )}
+      {detailResource && (
+        <CommunityResourceDetailModal
+          resource={detailResource}
+          userId={userId}
+          onClose={() => setDetailResource(null)}
+          onDelete={() => handleDeleteResource(detailResource)}
+          onFlag={() => { setDetailResource(null); setFlagResource(detailResource) }}
+          onUpdated={updated => {
+            setResources(prev => prev.map(r => r.id === updated.id ? updated : r))
+            setDetailResource(updated)
+          }}
+        />
+      )}
+      {flagResource && (
+        <FlagCommunityResourceModal
+          resourceId={flagResource.id}
+          onClose={() => setFlagResource(null)}
+          onFlagged={() => { showToast('Report submitted — thank you.', true); setFlagResource(null) }}
         />
       )}
 
