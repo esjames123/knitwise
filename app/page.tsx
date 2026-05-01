@@ -60,7 +60,7 @@ function SearchBarFallback() {
   return (
     <div className="flex w-full max-w-2xl items-center gap-2">
       <div className="h-14 flex-1 rounded-xl" style={{ backgroundColor: '#38342f', border: '1px solid #4a4440' }} />
-      <div className="h-14 w-24 rounded-xl" style={{ backgroundColor: '#C06B45', opacity: 0.7 }} />
+      <div className="h-14 w-24 rounded-xl" style={{ backgroundColor: '#D4A5A0', opacity: 0.7 }} />
     </div>
   )
 }
@@ -87,14 +87,14 @@ export default async function Home() {
         <div className="relative mx-auto max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm"
                style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#c4b8ae' }}>
-            <span style={{ color: '#C06B45' }}>✦</span>
+            <span style={{ color: '#D4A5A0' }}>✦</span>
             Over 40,000 patterns and counting
           </div>
 
           <h1 className="mb-5 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-tight"
               style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
             Find your next<br />
-            <em style={{ color: '#C06B45', fontStyle: 'italic' }}>beautiful make</em>
+            <em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>beautiful make</em>
           </h1>
 
           <p className="mb-10 text-lg" style={{ color: '#b0a49a' }}>
@@ -125,7 +125,7 @@ export default async function Home() {
             </div>
             <Link href="/search?sort=popularity&q=knitting"
                   className="text-sm font-medium transition-colors"
-                  style={{ color: '#C06B45' }}>
+                  style={{ color: '#D4A5A0' }}>
               View all →
             </Link>
           </div>
@@ -157,7 +157,7 @@ export default async function Home() {
                           <div
                             className="absolute inset-0"
                             style={{
-                              background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                              background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 50%, #8b4a2a 100%)',
                               opacity: 0.7,
                             }}
                           />
@@ -245,7 +245,7 @@ export default async function Home() {
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}
           >
             Why is Knitwise only{' '}
-            <em style={{ color: '#C06B45', fontStyle: 'italic' }}>$5?</em>
+            <em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>$5?</em>
           </h2>
 
           <div className="space-y-4 text-base leading-relaxed" style={{ color: '#b0a49a' }}>
@@ -283,7 +283,7 @@ export default async function Home() {
               style={{ borderTop: '1px solid #3a3530', backgroundColor: '#1e1c1a', color: '#7a6e67' }}>
         <div className="mb-3 flex items-center justify-center text-xl"
              style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
-          Knit<em style={{ color: '#C06B45', fontStyle: 'italic' }}>wise</em>
+          Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
         </div>
         <p>© 2026 Knitwise. Made for makers, by makers.</p>
       </footer>

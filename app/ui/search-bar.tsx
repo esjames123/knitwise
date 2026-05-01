@@ -117,7 +117,7 @@ export default function SearchBar() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onFocus={e => {
-              e.currentTarget.style.borderColor = '#C06B45'
+              e.currentTarget.style.borderColor = '#D4A5A0'
               if (displayRecents.length > 0) setShowDropdown(true)
             }}
             onBlur={e => (e.currentTarget.style.borderColor = '#4a4440')}
@@ -130,9 +130,9 @@ export default function SearchBar() {
         <button
           type="submit"
           className="rounded-xl px-6 py-4 font-semibold text-white transition-colors"
-          style={{ backgroundColor: '#C06B45' }}
+          style={{ backgroundColor: '#D4A5A0' }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#D4A5A0')}
         >
           Search
         </button>

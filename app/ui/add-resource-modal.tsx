@@ -98,7 +98,7 @@ export function AddResourceModal({
           {/* Title */}
           <div>
             <label className="mb-1 block text-xs font-medium" style={{ color: '#9a8e87' }}>
-              Title <span style={{ color: '#C06B45' }}>*</span>
+              Title <span style={{ color: '#D4A5A0' }}>*</span>
             </label>
             <input
               ref={titleRef}
@@ -108,7 +108,7 @@ export function AddResourceModal({
               placeholder="e.g. Rigid Heddle Weaving for Beginners"
               className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
               style={INPUT_STYLE}
-              onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+              onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
               onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
             />
           </div>
@@ -116,7 +116,7 @@ export function AddResourceModal({
           {/* URL */}
           <div>
             <label className="mb-1 block text-xs font-medium" style={{ color: '#9a8e87' }}>
-              URL <span style={{ color: '#C06B45' }}>*</span>
+              URL <span style={{ color: '#D4A5A0' }}>*</span>
             </label>
             <input
               type="url"
@@ -125,7 +125,7 @@ export function AddResourceModal({
               placeholder="https://…"
               className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
               style={INPUT_STYLE}
-              onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+              onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
               onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
             />
           </div>
@@ -154,7 +154,7 @@ export function AddResourceModal({
                 placeholder="YouTube, Blog…"
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
                 style={INPUT_STYLE}
-                onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+                onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
                 onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
               />
             </div>
@@ -170,7 +170,7 @@ export function AddResourceModal({
               rows={3}
               className="w-full resize-none rounded-xl px-4 py-2.5 text-sm outline-none"
               style={INPUT_STYLE}
-              onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+              onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
               onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
             />
           </div>
@@ -197,7 +197,7 @@ export function AddResourceModal({
               type="submit"
               disabled={saving}
               className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-40"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               {saving ? 'Saving…' : 'Save Resource'}
             </button>

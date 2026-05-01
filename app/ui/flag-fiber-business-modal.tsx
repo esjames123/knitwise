@@ -65,7 +65,7 @@ export function FlagFiberBusinessModal({ businessId, onClose, onFlagged }: Props
             rows={3}
             className="w-full resize-none rounded-xl px-4 py-2.5 text-sm outline-none"
             style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }}
-            onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+            onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
             onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
           />
 
@@ -84,7 +84,7 @@ export function FlagFiberBusinessModal({ businessId, onClose, onFlagged }: Props
             </button>
             <button type="submit" disabled={submitting}
               className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-40"
-              style={{ backgroundColor: '#C06B45' }}>
+              style={{ backgroundColor: '#D4A5A0' }}>
               {submitting ? 'Submitting…' : 'Submit Report'}
             </button>
           </div>

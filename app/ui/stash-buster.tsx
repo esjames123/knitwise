@@ -39,7 +39,7 @@ function HighlightedText({ text, term }: { text: string; term: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === term.toLowerCase() ? (
-          <mark key={i} style={{ backgroundColor: '#C06B45', color: '#fff', borderRadius: '3px', padding: '0 2px' }}>
+          <mark key={i} style={{ backgroundColor: '#D4A5A0', color: '#fff', borderRadius: '3px', padding: '0 2px' }}>
             {part}
           </mark>
         ) : part
@@ -123,7 +123,7 @@ function ResultCard({ pattern, yarnName }: { pattern: StashPattern; yarnName: st
           <img src={pattern.photo_url} alt={pattern.pattern_name} className="h-full w-full object-cover" />
         ) : (
           <div className="h-full w-full"
-               style={{ background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 100%)', opacity: 0.7 }} />
+               style={{ background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 100%)', opacity: 0.7 }} />
         )}
       </div>
 
@@ -148,7 +148,7 @@ function ResultCard({ pattern, yarnName }: { pattern: StashPattern; yarnName: st
           <Link href={`https://www.ravelry.com/patterns/library/${pattern.permalink}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex-shrink-0 text-xs font-medium transition-colors hover:underline"
-                style={{ color: '#C06B45' }}>
+                style={{ color: '#D4A5A0' }}>
             View →
           </Link>
         </div>
@@ -263,7 +263,7 @@ export function StashBuster({
         placeholder="e.g. 200 yards worsted, fingering Malabrigo, 400 yds DK…"
         className="w-full rounded-xl px-4 py-3 text-sm outline-none"
         style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }}
-        onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+        onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
         onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
       />
 
@@ -273,7 +273,7 @@ export function StashBuster({
           {parsedChips.map(chip => (
             <span key={chip}
                   className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: '#3d2a1e', border: '1px solid #C06B45', color: '#e8c4b0' }}>
+                  style={{ backgroundColor: '#3d2a1e', border: '1px solid #D4A5A0', color: '#e8c4b0' }}>
               {chip}
             </span>
           ))}
@@ -287,7 +287,7 @@ export function StashBuster({
           {/* Count + clear manual filters */}
           <div className="mb-4 flex items-center justify-between gap-2">
             <p className="text-sm font-semibold"
-               style={{ color: results.length > 0 ? '#C06B45' : '#7a6e67' }}>
+               style={{ color: results.length > 0 ? '#D4A5A0' : '#7a6e67' }}>
               {results.length === 0
                 ? 'No patterns match — try different yardage, weight, or yarn name'
                 : `🎉 ${results.length} pattern${results.length === 1 ? '' : 's'} match your stash!`}
@@ -320,7 +320,7 @@ export function StashBuster({
                           checked={maxYardage === p.max}
                           onChange={() => setMaxYardage(p.max)}
                           onClick={() => { if (maxYardage === p.max) setMaxYardage(null) }}
-                          style={{ accentColor: '#C06B45', width: 13, height: 13 }}
+                          style={{ accentColor: '#D4A5A0', width: 13, height: 13 }}
                         />
                         <span className="text-sm" style={{ color: '#c4b8ae' }}>{p.label}</span>
                       </label>
@@ -348,7 +348,7 @@ export function StashBuster({
                               type="checkbox"
                               checked={selectedWeights.has(w) || autoActive}
                               onChange={() => toggleWeight(w)}
-                              style={{ accentColor: '#C06B45', width: 13, height: 13 }}
+                              style={{ accentColor: '#D4A5A0', width: 13, height: 13 }}
                             />
                             <span className="text-sm" style={{
                               color: selectedWeights.has(w) || autoActive ? '#f5f0eb' : '#c4b8ae',

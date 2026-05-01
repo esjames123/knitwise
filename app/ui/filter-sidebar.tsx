@@ -101,8 +101,8 @@ function CheckItem({ label, checked, onChange }: { label: string; checked: boole
     <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm" style={{ color: '#e8e0d8' }}>
       <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
         style={{
-          backgroundColor: checked ? '#C06B45' : 'transparent',
-          border: checked ? '1px solid #C06B45' : '1px solid #5a5048',
+          backgroundColor: checked ? '#D4A5A0' : 'transparent',
+          border: checked ? '1px solid #D4A5A0' : '1px solid #5a5048',
           transition: 'all 150ms',
         }}
       >
@@ -122,9 +122,9 @@ function RadioItem({ label, checked, onChange }: { label: string; checked: boole
   return (
     <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm" style={{ color: '#e8e0d8' }}>
       <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full"
-        style={{ border: checked ? '1px solid #C06B45' : '1px solid #5a5048', transition: 'all 150ms' }}
+        style={{ border: checked ? '1px solid #D4A5A0' : '1px solid #5a5048', transition: 'all 150ms' }}
       >
-        {checked && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#C06B45' }} />}
+        {checked && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: '#D4A5A0' }} />}
       </span>
       <input type="radio" checked={checked} onChange={onChange} className="sr-only" />
       {label}
@@ -427,7 +427,7 @@ export default function FilterSidebar() {
           {activeFilterCount > 0 && (
             <span
               className="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               {activeFilterCount}
             </span>
@@ -457,9 +457,9 @@ export default function FilterSidebar() {
           {hasFilters && (
             <button onClick={clearAll}
               className="text-xs font-medium transition-colors"
-              style={{ color: '#C06B45' }}
+              style={{ color: '#D4A5A0' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#d4845f')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#C06B45')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#D4A5A0')}
             >
               Clear all
             </button>
@@ -482,7 +482,7 @@ export default function FilterSidebar() {
               {hasFilters && (
                 <button onClick={clearAll}
                   className="text-xs font-medium"
-                  style={{ color: '#C06B45' }}
+                  style={{ color: '#D4A5A0' }}
                 >
                   Clear all
                 </button>
@@ -491,7 +491,7 @@ export default function FilterSidebar() {
             <button
               onClick={() => setMobileOpen(false)}
               className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               Done
             </button>

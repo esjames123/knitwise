@@ -22,7 +22,7 @@ export async function PUT(
     .update({
       name:        name.trim(),
       description: typeof description === 'string' ? description.trim() || null : null,
-      color:       typeof color === 'string' && color ? color : '#C06B45',
+      color:       typeof color === 'string' && color ? color : '#D4A5A0',
     })
     .eq('id', id)
     .eq('user_id', auth.user.id)

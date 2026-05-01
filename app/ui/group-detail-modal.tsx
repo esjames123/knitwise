@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Group } from './group-card'
 
 const INPUT = { backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }
-const FOCUS = '#C06B45'
+const FOCUS = '#D4A5A0'
 const BLUR  = '#4a4440'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

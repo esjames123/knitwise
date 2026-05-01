@@ -139,10 +139,10 @@ export default function SaveButton({
         className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150"
         style={{
           backgroundColor: saved
-            ? '#C06B45'
+            ? '#D4A5A0'
             : 'rgba(26, 23, 20, 0.70)',
           border: saved
-            ? '1px solid #C06B45'
+            ? '1px solid #D4A5A0'
             : '1px solid rgba(255,255,255,0.18)',
           backdropFilter: 'blur(6px)',
           opacity: saved === null ? 0 : 1,

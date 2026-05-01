@@ -137,7 +137,7 @@ export default function ProfilePage() {
               { label: 'Resources shared',  val: myResources.length },
             ].map(({ label: l, val }) => (
               <div key={l} style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', borderRadius: '0.75rem', padding: '1.25rem 1rem', textAlign: 'center' }}>
-                <span style={{ display: 'block', fontSize: '1.875rem', fontWeight: 700, color: '#C06B45' }}>{val}</span>
+                <span style={{ display: 'block', fontSize: '1.875rem', fontWeight: 700, color: '#D4A5A0' }}>{val}</span>
                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#9a8e87', marginTop: '0.25rem' }}>{l}</span>
               </div>
             ))}
@@ -166,7 +166,7 @@ export default function ProfilePage() {
               </div>
               <button type="submit"
                 disabled={emailStatus === 'sending' || !newEmail.trim() || newEmail.trim() === user.email}
-                style={{ backgroundColor: '#C06B45', color: 'white', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', opacity: emailStatus === 'sending' ? 0.6 : 1 }}>
+                style={{ backgroundColor: '#D4A5A0', color: 'white', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer', opacity: emailStatus === 'sending' ? 0.6 : 1 }}>
                 {emailStatus === 'sending' ? 'Sending…' : 'Send confirmation email'}
               </button>
               <p style={{ color: '#5a504a', fontSize: '0.75rem' }}>Your email won't change until you click the confirmation link.</p>
@@ -178,14 +178,14 @@ export default function ProfilePage() {
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
             <p style={sectionTitle}>Your Groups</p>
-            <Link href="/community" style={{ color: '#C06B45', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/community" style={{ color: '#D4A5A0', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
           {myGroups.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
               <p style={{ color: '#7a6e67', fontSize: '0.875rem' }}>You haven&apos;t posted any groups yet.</p>
-              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#C06B45', fontSize: '0.875rem', fontWeight: 600 }}>
+              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#D4A5A0', fontSize: '0.875rem', fontWeight: 600 }}>
                 Post your first group →
               </Link>
             </div>
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                       {loc && <p style={{ color: '#7a6e67', fontSize: '0.75rem', marginTop: '0.125rem' }}>{loc}</p>}
                       {g.description && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{g.description}</p>}
                     </div>
-                    <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <Link href="/community" style={{ flexShrink: 0, color: '#D4A5A0', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       View →
                     </Link>
                   </div>
@@ -214,14 +214,14 @@ export default function ProfilePage() {
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
             <p style={sectionTitle}>Your Fiber Businesses</p>
-            <Link href="/community" style={{ color: '#C06B45', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/community" style={{ color: '#D4A5A0', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
           {myBusinesses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
               <p style={{ color: '#7a6e67', fontSize: '0.875rem' }}>You haven&apos;t listed any businesses yet.</p>
-              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#C06B45', fontSize: '0.875rem', fontWeight: 600 }}>
+              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#D4A5A0', fontSize: '0.875rem', fontWeight: 600 }}>
                 List your first business →
               </Link>
             </div>
@@ -240,7 +240,7 @@ export default function ProfilePage() {
                       {loc && <p style={{ color: '#7a6e67', fontSize: '0.75rem', marginTop: '0.125rem' }}>{loc}</p>}
                       {b.about && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.about}</p>}
                     </div>
-                    <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <Link href="/community" style={{ flexShrink: 0, color: '#D4A5A0', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       View →
                     </Link>
                   </div>
@@ -254,14 +254,14 @@ export default function ProfilePage() {
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
             <p style={sectionTitle}>Your Resources</p>
-            <Link href="/community" style={{ color: '#C06B45', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/community" style={{ color: '#D4A5A0', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
           {myResources.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
               <p style={{ color: '#7a6e67', fontSize: '0.875rem' }}>You haven&apos;t shared any resources yet.</p>
-              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#C06B45', fontSize: '0.875rem', fontWeight: 600 }}>
+              <Link href="/community" style={{ display: 'inline-block', marginTop: '0.75rem', color: '#D4A5A0', fontSize: '0.875rem', fontWeight: 600 }}>
                 Share your first resource →
               </Link>
             </div>
@@ -292,7 +292,7 @@ export default function ProfilePage() {
                       </div>
                       {r.description && <p style={{ color: '#9a8e87', fontSize: '0.75rem', marginTop: '0.25rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{r.description}</p>}
                     </div>
-                    <Link href="/community" style={{ flexShrink: 0, color: '#C06B45', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <Link href="/community" style={{ flexShrink: 0, color: '#D4A5A0', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       View →
                     </Link>
                   </div>

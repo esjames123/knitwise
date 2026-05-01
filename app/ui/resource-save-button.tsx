@@ -64,11 +64,11 @@ export function ResourceSaveButton({ url, title, resourceType, description, sour
   const bgColor =
     state === 'saved' || state === 'duplicate' ? '#1a3a2a'
     : state === 'error'                        ? '#3a2218'
-    : '#C06B45'
+    : '#D4A5A0'
 
   const borderColor =
     state === 'saved' || state === 'duplicate' ? '#2a5a3a'
-    : state === 'error'                        ? '#C06B45'
+    : state === 'error'                        ? '#D4A5A0'
     : 'transparent'
 
   const textColor =

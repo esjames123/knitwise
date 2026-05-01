@@ -19,7 +19,7 @@ const INPUT = {
   color: '#f5f0eb',
 }
 
-const FOCUS_COLOR = '#C06B45'
+const FOCUS_COLOR = '#D4A5A0'
 const BLUR_COLOR  = '#4a4440'
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
@@ -161,7 +161,7 @@ export function CreateGroupModal({
             <button
               type="submit" disabled={saving}
               className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-40"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               {saving ? 'Posting…' : 'Post Group'}
             </button>

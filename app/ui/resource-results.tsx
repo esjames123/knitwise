@@ -18,7 +18,7 @@ const RESOURCE_TYPES: Record<string, { label: string; color: string; bg: string;
   weaving:  { label: 'Weaving',  color: '#A0C4FF', bg: '#1a2a3a', border: '#2a4a6a' },
   spinning: { label: 'Spinning', color: '#BDB2FF', bg: '#1e1a3a', border: '#3a2a6a' },
   dyeing:   { label: 'Dyeing',   color: '#CAFFBF', bg: '#1a3a1a', border: '#2a5a2a' },
-  knitting: { label: 'Knitting', color: '#C06B45', bg: '#3d2a1e', border: '#6a3a20' },
+  knitting: { label: 'Knitting', color: '#D4A5A0', bg: '#3d2a1e', border: '#6a3a20' },
   crochet:  { label: 'Crochet',  color: '#FFD6A5', bg: '#3a2e1a', border: '#6a4a1a' },
   other:    { label: 'Other',    color: '#9a8e87', bg: '#38342f', border: '#4a4440' },
 }
@@ -85,7 +85,7 @@ export function ResourceResults({ resources }: { resources: PublicResource[] }) 
                 className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
                 style={{
                   backgroundColor: active ? '#3d2a1e' : '#2e2b28',
-                  border:          active ? '1px solid #C06B45' : '1px solid #3a3530',
+                  border:          active ? '1px solid #D4A5A0' : '1px solid #3a3530',
                   color:           active ? '#e8c4b0' : '#9a8e87',
                 }}
               >
@@ -119,7 +119,7 @@ export function ResourceResults({ resources }: { resources: PublicResource[] }) 
                     />
                   ) : (
                     <div className="absolute inset-0" style={{
-                      background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                      background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 50%, #8b4a2a 100%)',
                       opacity: 0.7,
                     }} />
                   )}

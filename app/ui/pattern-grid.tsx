@@ -95,7 +95,7 @@ export function PatternGrid({ patterns }: Props) {
   if (apiError) {
     return (
       <div className="rounded-xl px-6 py-4 text-center text-sm"
-           style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}>
+           style={{ backgroundColor: '#3a2218', border: '1px solid #D4A5A0', color: '#e0a090' }}>
         {apiError}
       </div>
     )
@@ -132,7 +132,7 @@ export function PatternGrid({ patterns }: Props) {
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                    background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 50%, #8b4a2a 100%)',
                     opacity: 0.7,
                   }}
                 />

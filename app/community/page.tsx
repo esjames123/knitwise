@@ -248,9 +248,9 @@ export default function CommunityPage() {
             <button
               onClick={() => userId ? setShowCreateGroup(true) : router.push('/login')}
               className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#D4A5A0')}
             >
               + Post Your Group
             </button>
@@ -270,12 +270,12 @@ export default function CommunityPage() {
                 onChange={e => set(e.target.value)}
                 className={`${flex} rounded-xl px-4 py-2.5 text-sm outline-none`}
                 style={INPUT}
-                onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+                onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
                 onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
               />
             ))}
             <button type="submit" className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: '#C06B45' }}>Search</button>
+              style={{ backgroundColor: '#D4A5A0' }}>Search</button>
             {hasGroupSearch && (
               <button type="button" onClick={handleGroupClear}
                 className="rounded-xl px-4 py-2.5 text-sm font-medium"
@@ -332,9 +332,9 @@ export default function CommunityPage() {
             <button
               onClick={() => userId ? setShowCreateBiz(true) : router.push('/login')}
               className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#D4A5A0')}
             >
               + List Your Business
             </button>
@@ -354,12 +354,12 @@ export default function CommunityPage() {
                 onChange={e => set(e.target.value)}
                 className={`${flex} rounded-xl px-4 py-2.5 text-sm outline-none`}
                 style={INPUT}
-                onFocus={e => (e.currentTarget.style.borderColor = '#C06B45')}
+                onFocus={e => (e.currentTarget.style.borderColor = '#D4A5A0')}
                 onBlur={e  => (e.currentTarget.style.borderColor = '#4a4440')}
               />
             ))}
             <button type="submit" className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ backgroundColor: '#C06B45' }}>Search</button>
+              style={{ backgroundColor: '#D4A5A0' }}>Search</button>
             {hasBizSearch && (
               <button type="button" onClick={handleBizClear}
                 className="rounded-xl px-4 py-2.5 text-sm font-medium"
@@ -416,9 +416,9 @@ export default function CommunityPage() {
             <button
               onClick={() => userId ? setShowCreateResource(true) : router.push('/login')}
               className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#A8572F')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C06B45')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#D4A5A0')}
             >
               + Share a Resource
             </button>
@@ -446,8 +446,8 @@ export default function CommunityPage() {
                   }}
                   className="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: active ? '#C06B45' : '#38342f',
-                    border: `1px solid ${active ? '#C06B45' : '#4a4440'}`,
+                    backgroundColor: active ? '#D4A5A0' : '#38342f',
+                    border: `1px solid ${active ? '#D4A5A0' : '#4a4440'}`,
                     color: active ? '#fff' : '#9a8e87',
                   }}
                 >

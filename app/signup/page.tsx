@@ -41,7 +41,7 @@ export default function SignUpPage() {
         className="mb-10 text-3xl tracking-tight"
         style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}
       >
-        Knit<em style={{ color: '#C06B45', fontStyle: 'italic' }}>wise</em>
+        Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
       </Link>
 
       {/* Card */}
@@ -94,7 +94,7 @@ export default function SignUpPage() {
                   border: '1px solid #4a4440',
                   color: '#f5f0eb',
                 }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = '#C06B45')}
+                onFocus={(e) => (e.currentTarget.style.borderColor = '#D4A5A0')}
                 onBlur={(e) => (e.currentTarget.style.borderColor = '#4a4440')}
               />
             </div>
@@ -123,7 +123,7 @@ export default function SignUpPage() {
                   border: '1px solid #4a4440',
                   color: '#f5f0eb',
                 }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = '#C06B45')}
+                onFocus={(e) => (e.currentTarget.style.borderColor = '#D4A5A0')}
                 onBlur={(e) => (e.currentTarget.style.borderColor = '#4a4440')}
               />
             </div>
@@ -141,7 +141,7 @@ export default function SignUpPage() {
               type="submit"
               disabled={pending}
               className="mt-1 rounded-xl py-3 text-sm font-semibold text-white transition-opacity"
-              style={{ backgroundColor: '#C06B45', opacity: pending ? 0.6 : 1 }}
+              style={{ backgroundColor: '#D4A5A0', opacity: pending ? 0.6 : 1 }}
             >
               {pending ? 'Creating account…' : 'Create account'}
             </button>
@@ -151,7 +151,7 @@ export default function SignUpPage() {
         {/* Switch to login */}
         <p className="mt-6 text-center text-sm" style={{ color: '#7a6e67' }}>
           Already have an account?{' '}
-          <Link href="/login" className="font-medium" style={{ color: '#C06B45' }}>
+          <Link href="/login" className="font-medium" style={{ color: '#D4A5A0' }}>
             Log in
           </Link>
         </p>

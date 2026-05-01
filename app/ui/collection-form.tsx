@@ -15,7 +15,7 @@ type Props = {
 }
 
 const COLORS = [
-  '#C06B45', // terracotta (default)
+  '#D4A5A0', // terracotta (default)
   '#7B9E87', // sage green
   '#6B8EAD', // steel blue
   '#9B8EC4', // soft purple
@@ -28,7 +28,7 @@ const COLORS = [
 export function CollectionForm({ initial, onSave, onClose }: Props) {
   const [name, setName]               = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [color, setColor]             = useState(initial?.color ?? '#C06B45')
+  const [color, setColor]             = useState(initial?.color ?? '#D4A5A0')
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -102,7 +102,7 @@ export function CollectionForm({ initial, onSave, onClose }: Props) {
                 border: `1px solid ${error ? '#e05050' : '#4a4440'}`,
                 color: '#f5f0eb',
               }}
-              onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+              onFocus={e  => (e.currentTarget.style.borderColor = '#D4A5A0')}
               onBlur={e   => (e.currentTarget.style.borderColor = error ? '#e05050' : '#4a4440')}
             />
             {error && <p className="mt-1 text-xs" style={{ color: '#e0a090' }}>{error}</p>}
@@ -121,7 +121,7 @@ export function CollectionForm({ initial, onSave, onClose }: Props) {
               rows={2}
               className="w-full rounded-xl px-4 py-2.5 text-sm outline-none resize-none"
               style={{ backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }}
-              onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+              onFocus={e  => (e.currentTarget.style.borderColor = '#D4A5A0')}
               onBlur={e   => (e.currentTarget.style.borderColor = '#4a4440')}
             />
           </div>
@@ -157,7 +157,7 @@ export function CollectionForm({ initial, onSave, onClose }: Props) {
               type="submit"
               disabled={saving}
               className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               {saving ? 'Saving…' : initial ? 'Save changes' : 'Create collection'}
             </button>

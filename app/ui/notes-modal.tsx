@@ -90,7 +90,7 @@ export function NotesModal({ patternName, initialNotes, onSave, onClose }: Props
               border: '1px solid #4a4440',
               color: '#f5f0eb',
             }}
-            onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+            onFocus={e  => (e.currentTarget.style.borderColor = '#D4A5A0')}
             onBlur={e   => (e.currentTarget.style.borderColor = '#4a4440')}
           />
 
@@ -101,7 +101,7 @@ export function NotesModal({ patternName, initialNotes, onSave, onClose }: Props
               type="submit"
               disabled={saving}
               className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#C06B45' }}
+              style={{ backgroundColor: '#D4A5A0' }}
             >
               {saving ? 'Saving…' : 'Save notes'}
             </button>

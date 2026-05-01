@@ -3,7 +3,7 @@
 @theme inline {
   --color-background: #242220;
   --color-foreground: #f5f0eb;
-  --color-terracotta: #C06B45;
+  --color-terracotta: #D4A5A0;
   --color-terracotta-dark: #A8572F;
   --color-terracotta-light: #d4845f;
   --color-ink: #242220;
@@ -24,6 +24,6 @@ body {
   border: 1px solid #4a4440;
 }
 .ravelry-link:hover {
-  background-color: #C06B45;
-  border-color: #C06B45;
+  background-color: #D4A5A0;
+  border-color: #D4A5A0;
 }

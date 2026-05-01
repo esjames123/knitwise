@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       user_id:     auth.user.id,
       name:        name.trim(),
       description: typeof description === 'string' ? description.trim() || null : null,
-      color:       typeof color === 'string' && color ? color : '#C06B45',
+      color:       typeof color === 'string' && color ? color : '#D4A5A0',
     })
     .select()
     .single()

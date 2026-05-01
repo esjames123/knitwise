@@ -99,7 +99,7 @@ export default async function SearchPage({
               {data?.error && (
                 <div
                   className="rounded-xl px-6 py-4 text-center text-sm"
-                  style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}
+                  style={{ backgroundColor: '#3a2218', border: '1px solid #D4A5A0', color: '#e0a090' }}
                 >
                   {data.error}
                 </div>
@@ -111,7 +111,7 @@ export default async function SearchPage({
                   <div className="mb-4 flex items-baseline justify-between">
                     <h1 className="text-2xl font-bold" style={{ color: '#f5f0eb' }}>
                       Results for{' '}
-                      <em style={{ color: '#C06B45', fontStyle: 'italic' }}>{filters.query}</em>
+                      <em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>{filters.query}</em>
                     </h1>
                     <span className="text-sm" style={{ color: '#7a6e67' }}>
                       {data.paginator.results.toLocaleString()} patterns
@@ -126,7 +126,7 @@ export default async function SearchPage({
                           key={i}
                           href={chip.removeUrl}
                           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                          style={{ backgroundColor: '#3d2a1e', border: '1px solid #C06B45', color: '#e8c4b0' }}
+                          style={{ backgroundColor: '#3d2a1e', border: '1px solid #D4A5A0', color: '#e8c4b0' }}
                         >
                           {chip.label}
                           <svg

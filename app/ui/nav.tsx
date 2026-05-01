@@ -55,7 +55,7 @@ export default function Nav() {
           <Link href="/"
             className="text-2xl tracking-tight"
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
-            Knit<em style={{ color: '#C06B45', fontStyle: 'italic' }}>wise</em>
+            Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
           </Link>
 
           {/* Desktop centre links */}
@@ -77,7 +77,7 @@ export default function Nav() {
                   {user.email}
                 </span>
                 <button onClick={handleLogOut}
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#D4A5A0] hover:bg-[#A8572F] transition-colors">
                   Log out
                 </button>
               </>
@@ -87,7 +87,7 @@ export default function Nav() {
                   Log in
                 </Link>
                 <Link href="/signup"
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#D4A5A0] hover:bg-[#A8572F] transition-colors">
                   Sign up free
                 </Link>
               </>
@@ -144,7 +144,7 @@ export default function Nav() {
                 <p className="px-4 pb-2 text-sm truncate" style={{ color: '#7a6e67' }}>{user.email}</p>
                 <button onClick={handleLogOut}
                   className="rounded-xl px-4 py-3.5 text-left text-base font-semibold text-white transition-colors"
-                  style={{ backgroundColor: '#C06B45' }}>
+                  style={{ backgroundColor: '#D4A5A0' }}>
                   Log out
                 </button>
               </>
@@ -157,7 +157,7 @@ export default function Nav() {
                 </Link>
                 <Link href="/signup"
                   className="rounded-xl px-4 py-3.5 text-center text-base font-semibold text-white"
-                  style={{ backgroundColor: '#C06B45' }}>
+                  style={{ backgroundColor: '#D4A5A0' }}>
                   Sign up free
                 </Link>
               </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const INPUT = { backgroundColor: '#38342f', border: '1px solid #4a4440', color: '#f5f0eb' }
-const FOCUS = '#C06B45'
+const FOCUS = '#D4A5A0'
 const BLUR  = '#4a4440'
 
 export type FiberBusinessPayload = {
@@ -180,7 +180,7 @@ export function CreateFiberBusinessModal({ onSave, onClose }: Props) {
                 type="checkbox"
                 checked={programs}
                 onChange={e => setPrograms(e.target.checked)}
-                className="h-4 w-4 rounded accent-[#C06B45]"
+                className="h-4 w-4 rounded accent-[#D4A5A0]"
               />
               <label htmlFor="programs" className="text-sm cursor-pointer" style={{ color: '#c4b8ae' }}>
                 Offers fiber arts programs / classes

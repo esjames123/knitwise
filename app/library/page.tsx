@@ -74,7 +74,7 @@ const RESOURCE_TYPES: Record<string, { label: string; color: string; bg: string;
   weaving:  { label: 'Weaving',  color: '#A0C4FF', bg: '#1a2a3a', border: '#2a4a6a' },
   spinning: { label: 'Spinning', color: '#BDB2FF', bg: '#1e1a3a', border: '#3a2a6a' },
   dyeing:   { label: 'Dyeing',   color: '#CAFFBF', bg: '#1a3a1a', border: '#2a5a2a' },
-  knitting: { label: 'Knitting', color: '#C06B45', bg: '#3d2a1e', border: '#6a3a20' },
+  knitting: { label: 'Knitting', color: '#D4A5A0', bg: '#3d2a1e', border: '#6a3a20' },
   crochet:  { label: 'Crochet',  color: '#FFD6A5', bg: '#3a2e1a', border: '#6a4a1a' },
   other:    { label: 'Other',    color: '#9a8e87', bg: '#38342f', border: '#4a4440' },
 }
@@ -83,7 +83,7 @@ const RESOURCE_TYPES: Record<string, { label: string; color: string; bg: string;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   not_started: { label: 'Not Started', color: '#7a6e67', bg: '#38342f', border: '#4a4440' },
-  in_progress: { label: 'In Progress', color: '#C06B45', bg: '#3d2a1e', border: '#6a3a20' },
+  in_progress: { label: 'In Progress', color: '#D4A5A0', bg: '#3d2a1e', border: '#6a3a20' },
   completed:   { label: 'Completed',   color: '#6dcfa0', bg: '#1a3a2a', border: '#2a5a3a' },
   on_hold:     { label: 'On Hold',     color: '#C4956A', bg: '#3a3018', border: '#5a4a28' },
 }
@@ -231,7 +231,7 @@ function CollectionPicker({
             <span className="h-2.5 w-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: '#4a4440' }} />
             No collection
-            {!pattern.collection_id && <span className="ml-auto text-xs" style={{ color: '#C06B45' }}>✓</span>}
+            {!pattern.collection_id && <span className="ml-auto text-xs" style={{ color: '#D4A5A0' }}>✓</span>}
           </button>
 
           {collections.map(c => (
@@ -245,7 +245,7 @@ function CollectionPicker({
                     style={{ backgroundColor: c.color }} />
               {c.name}
               {pattern.collection_id === c.id && (
-                <span className="ml-auto text-xs" style={{ color: '#C06B45' }}>✓</span>
+                <span className="ml-auto text-xs" style={{ color: '#D4A5A0' }}>✓</span>
               )}
             </button>
           ))}
@@ -865,7 +865,7 @@ export default function LibraryPage() {
             </button>
             <Link
               href="/search"
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#C06B45] hover:bg-[#A8572F]"
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors bg-[#D4A5A0] hover:bg-[#A8572F]"
             >
               Find patterns
             </Link>
@@ -875,7 +875,7 @@ export default function LibraryPage() {
         {/* Error */}
         {error && (
           <div className="rounded-xl px-6 py-4 text-center text-sm"
-               style={{ backgroundColor: '#3a2218', border: '1px solid #C06B45', color: '#e0a090' }}>
+               style={{ backgroundColor: '#3a2218', border: '1px solid #D4A5A0', color: '#e0a090' }}>
             {error}
           </div>
         )}
@@ -1093,14 +1093,14 @@ export default function LibraryPage() {
                       border: `1px solid ${designerError ? '#e05050' : '#4a4440'}`,
                       color: '#f5f0eb',
                     }}
-                    onFocus={e  => (e.currentTarget.style.borderColor = '#C06B45')}
+                    onFocus={e  => (e.currentTarget.style.borderColor = '#D4A5A0')}
                     onBlur={e   => (e.currentTarget.style.borderColor = designerError ? '#e05050' : '#4a4440')}
                   />
                   <button
                     type="submit"
                     disabled={addingDesigner || !newDesigner.trim()}
                     className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-40"
-                    style={{ backgroundColor: '#C06B45' }}
+                    style={{ backgroundColor: '#D4A5A0' }}
                   >
                     {addingDesigner ? 'Adding…' : 'Add'}
                   </button>
@@ -1136,7 +1136,7 @@ export default function LibraryPage() {
                                  className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-sm font-bold"
-                                 style={{ color: '#C06B45' }}>
+                                 style={{ color: '#D4A5A0' }}>
                               {d.designer_name.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -1218,7 +1218,7 @@ export default function LibraryPage() {
               {selectedIds.size > 0 && (
                 <div
                   className="sticky top-4 z-10 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
-                  style={{ backgroundColor: '#38342f', border: '1px solid #C06B45' }}
+                  style={{ backgroundColor: '#38342f', border: '1px solid #D4A5A0' }}
                 >
                   <span className="text-sm font-semibold" style={{ color: '#f5f0eb' }}>
                     {selectedIds.size} {selectedIds.size === 1 ? 'pattern' : 'patterns'} selected
@@ -1302,7 +1302,7 @@ export default function LibraryPage() {
                     Hit the heart on any search result to save it here.
                   </p>
                   <Link href="/search"
-                        className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors">
+                        className="mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-[#D4A5A0] hover:bg-[#A8572F] transition-colors">
                     Search patterns
                   </Link>
                 </div>
@@ -1332,7 +1332,7 @@ export default function LibraryPage() {
                           className="group flex flex-col rounded-2xl hover:-translate-y-1 hover:z-10"
                           style={{
                             backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
-                            border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
+                            border: `1px solid ${isSelected ? '#D4A5A0' : '#3a3530'}`,
                             opacity: isDeleting ? 0.5 : 1,
                             transition: 'opacity 200ms, transform 150ms, border-color 100ms, background-color 100ms',
                             position: 'relative',
@@ -1349,7 +1349,7 @@ export default function LibraryPage() {
                               />
                             ) : (
                               <div className="absolute inset-0" style={{
-                                background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                                background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 50%, #8b4a2a 100%)',
                                 opacity: 0.7,
                               }} />
                             )}
@@ -1360,8 +1360,8 @@ export default function LibraryPage() {
                               aria-label={isSelected ? 'Deselect pattern' : 'Select pattern'}
                               className={`absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                               style={{
-                                backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
-                                border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
+                                backgroundColor: isSelected ? '#D4A5A0' : 'rgba(26,23,20,0.70)',
+                                border: `1px solid ${isSelected ? '#D4A5A0' : 'rgba(255,255,255,0.18)'}`,
                                 backdropFilter: 'blur(6px)',
                               }}
                             >
@@ -1518,7 +1518,7 @@ export default function LibraryPage() {
                   {/* Resource bulk action bar */}
                   {selectedResourceIds.size > 0 && (
                     <div className="sticky top-4 z-10 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
-                         style={{ backgroundColor: '#38342f', border: '1px solid #C06B45' }}>
+                         style={{ backgroundColor: '#38342f', border: '1px solid #D4A5A0' }}>
                       <span className="text-sm font-semibold" style={{ color: '#f5f0eb' }}>
                         {selectedResourceIds.size} {selectedResourceIds.size === 1 ? 'resource' : 'resources'} selected
                       </span>
@@ -1574,7 +1574,7 @@ export default function LibraryPage() {
                       </p>
                       <button
                         onClick={() => setShowAddResource(true)}
-                        className="mt-4 rounded-xl px-4 py-2 text-sm font-semibold text-white bg-[#C06B45] hover:bg-[#A8572F] transition-colors"
+                        className="mt-4 rounded-xl px-4 py-2 text-sm font-semibold text-white bg-[#D4A5A0] hover:bg-[#A8572F] transition-colors"
                       >
                         Add your first resource
                       </button>
@@ -1595,7 +1595,7 @@ export default function LibraryPage() {
                             className="group flex flex-col rounded-2xl overflow-hidden hover:z-10"
                             style={{
                               backgroundColor: isSelected ? '#3a2e28' : '#2e2b28',
-                              border: `1px solid ${isSelected ? '#C06B45' : '#3a3530'}`,
+                              border: `1px solid ${isSelected ? '#D4A5A0' : '#3a3530'}`,
                               position: 'relative',
                               transition: 'border-color 100ms, background-color 100ms',
                             }}
@@ -1611,7 +1611,7 @@ export default function LibraryPage() {
                                 />
                               ) : (
                                 <div className="absolute inset-0" style={{
-                                  background: 'linear-gradient(135deg, #3a2a1e 0%, #C06B45 50%, #8b4a2a 100%)',
+                                  background: 'linear-gradient(135deg, #3a2a1e 0%, #D4A5A0 50%, #8b4a2a 100%)',
                                   opacity: 0.7,
                                 }} />
                               )}
@@ -1644,8 +1644,8 @@ export default function LibraryPage() {
                                 aria-label={isSelected ? 'Deselect' : 'Select'}
                                 className={`absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${isSelected || anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                 style={{
-                                  backgroundColor: isSelected ? '#C06B45' : 'rgba(26,23,20,0.70)',
-                                  border: `1px solid ${isSelected ? '#C06B45' : 'rgba(255,255,255,0.18)'}`,
+                                  backgroundColor: isSelected ? '#D4A5A0' : 'rgba(26,23,20,0.70)',
+                                  border: `1px solid ${isSelected ? '#D4A5A0' : 'rgba(255,255,255,0.18)'}`,
                                   backdropFilter: 'blur(6px)',
                                 }}
                               >
