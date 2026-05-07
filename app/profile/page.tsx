@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/app/ui/nav'
 import { supabase } from '@/lib/supabase'
+import { ResourcesIcon } from '@/app/ui/icons/ResourcesIcon'
 import type { Group } from '@/app/ui/group-card'
 import type { FiberBusiness } from '@/app/ui/fiber-business-card'
 import type { CommunityResource } from '@/app/ui/community-resource-card'
@@ -253,7 +254,10 @@ export default function ProfilePage() {
         {/* Your Resources */}
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <p style={sectionTitle}>Your Resources</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ResourcesIcon size={20} />
+              <p style={sectionTitle}>Your Resources</p>
+            </div>
             <Link href="/community" style={{ color: '#D4A5A0', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
