@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { CrownLogo } from '@/app/ui/icons/CrownLogo'
+import { ExploreIcon } from '@/app/ui/icons/ExploreIcon'
+import { CommunityIcon } from '@/app/ui/icons/CommunityIcon'
+import { LibraryIcon } from '@/app/ui/icons/LibraryIcon'
 
 export default function Nav() {
   const [user, setUser] = useState<User | null>(null)
@@ -36,12 +40,12 @@ export default function Nav() {
   }
 
   const publicLinks = [
-    { href: '/search',    label: 'Explore'    },
-    { href: '/community', label: 'Community'  },
+    { href: '/search',    label: 'Explore',    Icon: ExploreIcon    },
+    { href: '/community', label: 'Community',  Icon: CommunityIcon  },
   ]
   const authLinks = [
-    { href: '/library', label: 'My Library' },
-    { href: '/profile', label: 'Profile'    },
+    { href: '/library', label: 'My Library', Icon: LibraryIcon },
+    { href: '/profile', label: 'Profile',    Icon: null         },
   ]
   const navLinks = [...publicLinks, ...(user ? authLinks : [])]
 
@@ -53,17 +57,21 @@ export default function Nav() {
 
           {/* Logo */}
           <Link href="/"
-            className="text-2xl tracking-tight"
+            className="flex items-center gap-2"
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
-            Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
+            <CrownLogo size={24} />
+            <span className="text-2xl tracking-tight">
+              Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
+            </span>
           </Link>
 
           {/* Desktop centre links */}
-          <div className="hidden items-center gap-8 text-sm sm:flex" style={{ color: '#c4b8ae' }}>
+          <div className="hidden items-center gap-6 text-sm sm:flex" style={{ color: '#c4b8ae' }}>
             {navLinks.map(l => (
               <Link key={l.href} href={l.href}
-                className="transition-colors hover:text-white"
+                className="flex items-center gap-1.5 transition-colors hover:text-white"
                 style={{ color: pathname === l.href ? '#f5f0eb' : '#c4b8ae' }}>
+                {l.Icon && <l.Icon size={20} />}
                 {l.label}
               </Link>
             ))}
@@ -127,11 +135,12 @@ export default function Nav() {
             {/* Nav links */}
             {navLinks.map(l => (
               <Link key={l.href} href={l.href}
-                className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors"
+                className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-colors"
                 style={{
                   color: pathname === l.href ? '#f5f0eb' : '#c4b8ae',
                   backgroundColor: pathname === l.href ? '#2e2b28' : 'transparent',
                 }}>
+                {l.Icon && <l.Icon size={28} />}
                 {l.label}
               </Link>
             ))}
