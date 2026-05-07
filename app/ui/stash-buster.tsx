@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { CommunityIcon } from '@/app/ui/icons/CommunityIcon'
 
 export type StashPattern = {
   id: string
@@ -248,7 +249,9 @@ export function StashBuster({
 
       {/* Header */}
       <div className="mb-5 flex items-start gap-3">
-        <span className="mt-0.5 select-none text-2xl leading-none">🧶</span>
+        <span className="mt-0.5 flex-shrink-0">
+          <CommunityIcon size={30} color="#D4A5A0" />
+        </span>
         <div>
           <h2 className="text-lg font-bold" style={{ color: '#f5f0eb' }}>Stash Busting Tool</h2>
           <p className="mt-0.5 text-sm" style={{ color: '#7a6e67' }}>
@@ -290,7 +293,7 @@ export function StashBuster({
                style={{ color: results.length > 0 ? '#D4A5A0' : '#7a6e67' }}>
               {results.length === 0
                 ? 'No patterns match — try different yardage, weight, or yarn name'
-                : `🎉 ${results.length} pattern${results.length === 1 ? '' : 's'} match your stash!`}
+                : <><span style={{ color: '#D4A5A0' }}>✦</span> {results.length} pattern{results.length === 1 ? '' : 's'} match your stash!</>}
             </p>
             {hasManualFilter && (
               <button onClick={clearFilters}
