@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import { CrownLogo } from '@/app/ui/icons/CrownLogo'
 import { ExploreIcon } from '@/app/ui/icons/ExploreIcon'
 import { CommunityIcon } from '@/app/ui/icons/CommunityIcon'
 import { LibraryIcon } from '@/app/ui/icons/LibraryIcon'
@@ -58,6 +59,7 @@ export default function Nav() {
           <Link href="/"
             className="flex items-center gap-2"
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: '#f5f0eb' }}>
+            <CrownLogo size={24} />
             <span className="text-2xl tracking-tight">
               Knit<em style={{ color: '#D4A5A0', fontStyle: 'italic' }}>wise</em>
             </span>

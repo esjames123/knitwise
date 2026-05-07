@@ -4,6 +4,7 @@ import SearchBar from './ui/search-bar'
 import Nav from './ui/nav'
 import SaveButton from './ui/save-button'
 import { RavelryFooter } from './ui/ravelry-attribution'
+import { CrownLogo } from './ui/icons/CrownLogo'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -237,6 +238,10 @@ export default async function Home() {
       {/* ── Mission ───────────────────────────────────────────── */}
       <section className="px-4 py-16 sm:px-6 sm:py-24" style={{ backgroundColor: '#1e1c1a' }}>
         <div className="mx-auto max-w-2xl text-center">
+
+          <div className="mb-6 flex justify-center">
+            <CrownLogo size={52} />
+          </div>
 
           <h2
             className="mb-6 text-2xl font-bold sm:text-3xl"
