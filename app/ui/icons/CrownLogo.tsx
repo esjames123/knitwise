@@ -1,9 +1,10 @@
 type CrownLogoProps = {
   size?: number
   className?: string
+  color?: string
 }
 
-export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
+export function CrownLogo({ size = 120, className = '', color = '#C49A96' }: CrownLogoProps) {
   return (
     <svg
       width={size}
@@ -16,32 +17,30 @@ export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
       <defs>
         <linearGradient id="crown-g" x1="15%" y1="0%" x2="85%" y2="100%">
           <stop offset="0%" stopColor="#F0D0CE" />
-          <stop offset="40%" stopColor="#C49A96" />
-          <stop offset="100%" stopColor="#8B6260" />
+          <stop offset="40%" stopColor={color} />
+          <stop offset="100%" stopColor="#7A5250" />
         </linearGradient>
-        {/* Glow applied to the group — gives unified emboss depth across whole crown */}
         <filter id="crown-f" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#C49A96" floodOpacity="0.5" />
-          <feDropShadow dx="1"   dy="3"   stdDeviation="1"   floodColor="#6B4240" floodOpacity="0.3" />
+          <feDropShadow dx="0" dy="1"   stdDeviation="2"   floodColor={color}   floodOpacity="0.45" />
+          <feDropShadow dx="0.5" dy="2" stdDeviation="0.8" floodColor="#5C3A38" floodOpacity="0.3"  />
         </filter>
       </defs>
 
-      {/* All crown paths share the same stroke style and glow filter */}
       <g stroke="url(#crown-g)" strokeLinecap="round" strokeLinejoin="round" fill="none"
          filter="url(#crown-f)">
 
         {/* ── Base oval band ──────────────────────────────────── */}
-        <ellipse cx="120" cy="198" rx="88" ry="12" strokeWidth="3" />
-        <ellipse cx="120" cy="198" rx="74" ry="7.5" strokeWidth="1.5" strokeOpacity="0.5" />
+        <ellipse cx="120" cy="198" rx="88" ry="11"   strokeWidth="2.5" />
+        <ellipse cx="120" cy="198" rx="74" ry="6.5"  strokeWidth="1.2" strokeOpacity="0.5" />
 
-        {/* ── Wing scrolls at far left and right ─────────────── */}
-        <path strokeWidth="2.8"
+        {/* ── Wing scrolls ────────────────────────────────────── */}
+        <path strokeWidth="2.5"
           d="M 36,196 C 26,190, 18,180, 22,170 C 26,160, 36,164, 34,172 C 32,180, 24,178, 26,172" />
-        <path strokeWidth="2.8"
+        <path strokeWidth="2.5"
           d="M 204,196 C 214,190, 222,180, 218,170 C 214,160, 204,164, 206,172 C 208,180, 216,178, 214,172" />
 
-        {/* ── Left arch — strand A (outer path of left arch loop) */}
-        <path strokeWidth="7"
+        {/* ── Left arch — outer strand ────────────────────────── */}
+        <path strokeWidth="5.5"
           d="M 36,196
              C 32,172, 28,142, 32,114
              C 36,88, 48,72, 60,64
@@ -51,8 +50,8 @@ export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
              C 66,124, 74,138, 78,162
              C 80,176, 82,190, 84,196" />
 
-        {/* ── Left arch — strand B (inner, crosses A at peak loop) */}
-        <path strokeWidth="7"
+        {/* ── Left arch — inner crossing strand ───────────────── */}
+        <path strokeWidth="5.5"
           d="M 52,196
              C 50,174, 50,150, 54,128
              C 58,106, 66,90, 64,76
@@ -62,29 +61,29 @@ export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
              C 48,140, 44,160, 40,180
              L 38,196" />
 
-        {/* ── Left peak loop oval ─────────────────────────────── */}
-        <ellipse cx="68" cy="56" rx="14" ry="12" strokeWidth="6" />
+        {/* ── Left peak loop ──────────────────────────────────── */}
+        <ellipse cx="70" cy="57" rx="13" ry="11" strokeWidth="5" />
 
-        {/* ── K vertical stroke (center ascending strand) ─────── */}
-        <path strokeWidth="7"
+        {/* ── K vertical stroke ────────────────────────────────── */}
+        <path strokeWidth="6"
           d="M 120,192
              C 120,165, 120,138, 120,110
-             C 120,82, 120,56, 120,36" />
+             C 120,82,  120,56,  120,36" />
 
-        {/* ── K upper diagonal arm (toward right peak) ─────────── */}
-        <path strokeWidth="7"
+        {/* ── K upper arm ──────────────────────────────────────── */}
+        <path strokeWidth="6"
           d="M 120,118
              C 130,106, 144,90, 158,74
              C 170,62, 178,52, 182,48" />
 
-        {/* ── K lower diagonal arm (toward base-right) ─────────── */}
-        <path strokeWidth="7"
+        {/* ── K lower arm ──────────────────────────────────────── */}
+        <path strokeWidth="6"
           d="M 120,118
              C 132,130, 148,146, 164,162
              C 175,173, 183,183, 186,196" />
 
-        {/* ── Right arch — strand A (outer, mirror of left A) ──── */}
-        <path strokeWidth="7"
+        {/* ── Right arch — outer strand ───────────────────────── */}
+        <path strokeWidth="5.5"
           d="M 204,196
              C 208,172, 212,142, 208,114
              C 204,88, 192,72, 180,64
@@ -94,8 +93,8 @@ export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
              C 174,124, 166,138, 162,162
              C 160,176, 158,190, 156,196" />
 
-        {/* ── Right arch — strand B (inner, mirror of left B) ──── */}
-        <path strokeWidth="7"
+        {/* ── Right arch — inner crossing strand ──────────────── */}
+        <path strokeWidth="5.5"
           d="M 188,196
              C 190,174, 190,150, 186,128
              C 182,106, 174,90, 176,76
@@ -105,21 +104,20 @@ export function CrownLogo({ size = 120, className = '' }: CrownLogoProps) {
              C 192,140, 196,160, 200,180
              L 202,196" />
 
-        {/* ── Right peak loop oval ─────────────────────────────── */}
-        <ellipse cx="172" cy="56" rx="14" ry="12" strokeWidth="6" />
+        {/* ── Right peak loop ─────────────────────────────────── */}
+        <ellipse cx="170" cy="57" rx="13" ry="11" strokeWidth="5" />
 
         {/* ── Center top loop ──────────────────────────────────── */}
-        <ellipse cx="120" cy="24" rx="16" ry="14" strokeWidth="6.5" />
+        <ellipse cx="120" cy="24" rx="15" ry="13" strokeWidth="5.5" />
 
-        {/* ── Decorative cross-band — adds knotwork density ─────── */}
-        {/* This horizontal band ties the three arches together visually */}
-        <path strokeWidth="4.5" strokeOpacity="0.65"
-          d="M 82,148 C 96,144, 108,142, 120,142 C 132,142, 144,144, 158,148" />
+        {/* ── Decorative cross-band ────────────────────────────── */}
+        <path strokeWidth="3.5" strokeOpacity="0.6"
+          d="M 84,148 C 96,144, 108,142, 120,142 C 132,142, 144,144, 156,148" />
 
-        {/* ── Inner cross detail — suggests the weave at arch bodies */}
-        <path strokeWidth="3.5" strokeOpacity="0.5"
+        {/* ── Inner arch detail lines ──────────────────────────── */}
+        <path strokeWidth="2.8" strokeOpacity="0.45"
           d="M 52,110 C 70,106, 90,104, 108,104" />
-        <path strokeWidth="3.5" strokeOpacity="0.5"
+        <path strokeWidth="2.8" strokeOpacity="0.45"
           d="M 132,104 C 150,104, 170,106, 188,110" />
 
       </g>
