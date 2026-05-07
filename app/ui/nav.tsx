@@ -9,6 +9,7 @@ import { CrownLogo } from '@/app/ui/icons/CrownLogo'
 import { ExploreIcon } from '@/app/ui/icons/ExploreIcon'
 import { CommunityIcon } from '@/app/ui/icons/CommunityIcon'
 import { LibraryIcon } from '@/app/ui/icons/LibraryIcon'
+import { ResourcesIcon } from '@/app/ui/icons/ResourcesIcon'
 
 export default function Nav() {
   const [user, setUser] = useState<User | null>(null)
@@ -45,7 +46,7 @@ export default function Nav() {
   ]
   const authLinks = [
     { href: '/library', label: 'My Library', Icon: LibraryIcon },
-    { href: '/profile', label: 'Profile',    Icon: null         },
+    { href: '/profile', label: 'Profile',    Icon: ResourcesIcon },
   ]
   const navLinks = [...publicLinks, ...(user ? authLinks : [])]
 
